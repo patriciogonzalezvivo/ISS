@@ -27,6 +27,10 @@
             position: absolute;
             z-index: 0;
         }
+
+        #mz-citysearch, #mz-geolocator { 
+            display: none 
+        }
     </style>
   </head>
 
@@ -37,14 +41,13 @@
     <script src="lib/leaflet/leaflet.js"></script>
     <!-- bog-standard leaflet URL hash -->
     <script src="lib/leaflet-hash.js"></script>
+    <!-- Tangram library -->
+    <script src="https://mapzen.com/tangram/tangram.min.js"></script>
     <!-- End of 3rd party libraries -->
 
+    <!-- Get ISS orbit from http://iss.astroviewer.net/ -->
     <script type='text/javascript' language='javascript' src='http://astroviewer-sat2d.appspot.com/orbit?var=orbit'></script>
-
-    <!-- Main tangram library -->
-    <script src="https://mapzen.com/tangram/tangram.min.js"></script>
-    
-    <!-- Demo module -->
+    <!-- MAIN -->
     <script src="main.js"></script>
 
     <!-- Adding a script block to post message to the parent container (think iframed demos) -->

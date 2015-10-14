@@ -59,9 +59,30 @@ function init() {
     window.setInterval("update(getCurrentTime())", 1000);
 }
 
+Date.prototype.getJulian = function() {
+    return Math.floor((this / 86400000) - (this.getTimezoneOffset()/1440) + 2440587.5);
+}
+
 function update(time) {   // time in seconds since Jan. 01, 1970 UTC
+    // Update position to the satelite
     var state = getSatelliteState(time);
     map.panTo([state.lat, state.lon],{animate:true, duration: 1., easeLinearity: 1});
+
+    // Update Sun position
+    var now = new Date();
+    var cur_hour = now.getHours();
+    var cur_min = now.getMinutes();
+    var cur_sec = now.getSeconds();
+    var cur_jul = now.getJulian() - 1;
+    var equinox_jul = new Date(now.getFullYear(),2,20,24,-now.getTimezoneOffset(),0,0).getJulian() - 1;
+
+    var offset_x = 180+Math.round(((cur_hour*3600 + cur_min*60 + cur_sec)/86400) * 90 ); // Resulting offset X
+    var offset_sin = ((365.25 - equinox_jul + cur_jul)%365.25)/365.25; // Day offset, mapped on the equinox offset
+    var offset_sin_factor = Math.sin(offset_sin * 2 * Math.PI); // Sine wave offset
+    var offset_y = offset_sin_factor * 23.44; // Map onto angle. Maximum angle is 23.44° in both directions
+    
+    scene.styles.textures.shaders.uniforms.u_sun_offset = [offset_x, offset_y];
+    // console.log(scene.styles.textures.shaders.uniforms.u_sun_offset);
 }
 
 function getCurrentTime() {   // time in seconds since Jan. 01, 1970 UTC

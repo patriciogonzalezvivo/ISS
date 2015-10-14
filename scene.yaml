@@ -11,7 +11,6 @@ lights:
     point_light:
         type: point
         origin: world
-        position: [0,58,14900000]
         specular: [0.980, 0.980, 0.980]
         diffuse: [1., 1., 1.]
 styles:
@@ -66,27 +65,6 @@ styles:
                             vec4(0.,0.,1.,0.),
                             vec4(0.,0.,0.,1.));
                     }
-                    //
-                    // Scale 4 dimensions
-                    // ================================
-                    mat4 scale4D (float x, float y, float z) {
-                        return mat4(
-                            vec4(x,   0.0, 0.0, 0.0),
-                            vec4(0.0, y,   0.0, 0.0),
-                            vec4(0.0, 0.0, z,   0.0),
-                            vec4(0.0, 0.0, 0.0, 1.0)
-                        );
-                    }
-                    //
-                    // Translate in 4 dimensions
-                    mat4 translate4D (float x, float y, float z) {
-                        return mat4(
-                            vec4(1.0, 0.0, 0.0, 0.0),
-                            vec4(0.0, 1.0, 0.0, 0.0),
-                            vec4(0.0, 0.0, 1.0, 0.0),
-                            vec4(x,   y,   z,   1.0)
-                        );
-                    }
     geometry-projection:
         shaders:
             defines:
@@ -138,26 +116,31 @@ styles:
         animated: true
         shaders:
             uniforms:
-                u_normal_map: imgs/earth-normals-xhd.jpg
+                u_normal_map: imgs/earth-normals-hd.jpg
                 u_cloud_map: imgs/earth-clouds-hd.jpg
                 u_day_map: imgs/earth-texture-day-xhd.jpg
                 u_night_map: imgs/earth-texture-night-hd.jpg
+                u_sun_offset: [0,23]
             blocks:
                 normal: |
                     float alpha = pow(1.-map(u_map_position.z,6.,9.,0.,1.),5.0);
                     vec2 st = u_map_position.xy+v_position.xy;
                     vec2 pos = vec2(y2lat_m(st.y),x2lon_m(st.x));
                     mat3 sphere = rotateY3D(deg2rad(pos.y)) * rotateX3D(deg2rad(pos.x));
-                    normal = mix(normal,sphere * normal,alpha);
+                    normal = mix(normal,sphere*vec3(.0,.0,10.),alpha);
                     pos /= vec2(90.,180.); // Normalize
-                    pos = (pos+1.)*.5; // re-map between 0.0 and 1.0
-                    normal += (texture2D(u_normal_map,fract(pos.yx)).rgb*2.-1.)*alpha;
+                    pos = (pos+1.)*.5; // re-map between 0.0 and 1.
+                    normal = ( normal + (texture2D(u_normal_map,fract(pos.yx)).rgb*2.-1.)*alpha);
                 color: |
-                    point_light.position.x = cos(u_time*0.4)*99999999.*alpha;
+                    vec3 sun_pos = vec3(.0,.0,1495978707.00)*u_meters_per_pixel;
+                    sun_pos = rotateY3D(deg2rad(u_sun_offset.x))*rotateX3D(deg2rad(u_sun_offset.y))*sun_pos;
+                    
+                    point_light.position.xyz = sun_pos;
+                    
                     vec4 night = texture2D(u_night_map,fract(pos.yx));
                     vec4 day = texture2D(u_day_map,fract(pos.yx));
                 filter: |
-                    color = mix(color,mix(night,day,light_accumulator_diffuse.r),alpha);
+                    color = mix(v_color,mix(night,day,light_accumulator_diffuse.r),alpha);
                     float clouds = texture2D(u_cloud_map,fract(pos.yx+vec2(u_time,sin(u_time))*.001 ) ).r;
                     color = mix(color,mix(color-clouds,color+clouds,light_accumulator_diffuse.r),alpha);
     earth_texture:
