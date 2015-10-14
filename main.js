@@ -1,0 +1,99 @@
+var track = orbit.orbitData;
+var timeDiff = 0;
+var lastDayNightOverlayUpdate = 0;
+var isMiles = false;
+var MILE_IN_KM = 1.609344;
+var zoom = 6
+
+map = (function () {
+    'use strict';
+
+    // Leaflet Map
+    var map = L.map('map',{
+                            scrollWheelZoom: 'center', 
+                            dragging: false,
+                            zoomControl:false 
+                        });
+    // Tangram Layer
+    var layer = Tangram.leafletLayer({
+        scene: 'scene.yaml',
+        numWorkers: 2,
+        attribution: '<a href="https://mapzen.com/tangram" target="_blank">Tangram</a> | &copy; OSM contributors | <a href="https://mapzen.com/" target="_blank">Mapzen</a>',
+        unloadInvisibleTiles: false,
+        updateWhenIdle: false,
+
+    });
+
+    window.layer = layer;
+    var scene = layer.scene;
+    window.scene = scene;
+
+    // setView expects format ([lat, long], zoom)
+    map.setView([40.7238, -73.9881], 4);
+
+    var hash = new L.Hash(map);
+
+    /***** Render loop *****/
+    window.addEventListener('load', function () {
+        init();
+    });
+
+    return map;
+}());
+
+function init() {
+    var serverTime = orbit.tRef;
+    var clientTime = Math.round(new Date().getTime()/1000);
+    timeDiff = clientTime - serverTime;
+
+    var currTime = serverTime;
+
+    var state = getSatelliteState(currTime);
+    var time   = state.time;
+    var satLon = state.lon;
+    var satLat = state.lat;
+
+    map.setView([satLat, satLon], zoom);
+    layer.addTo(map);
+
+    window.setInterval("update(getCurrentTime())", 1000);
+}
+
+function update(time) {   // time in seconds since Jan. 01, 1970 UTC
+    var state = getSatelliteState(time);
+    map.panTo([state.lat, state.lon],{animate:true, duration: 1., easeLinearity: 1});
+}
+
+function getCurrentTime() {   // time in seconds since Jan. 01, 1970 UTC
+  return Math.round(new Date().getTime()/1000) - timeDiff;
+}
+
+function getSatelliteState(time) {   // time in seconds since Jan. 01, 1970 UTC
+    if ( (time < track[0].t) || (time > track[track.length-1].t) ) {
+        window.location.reload(true);
+        return null;
+    }
+
+    try {
+        var idx = getIndex(time);
+        var state1 = track[idx];
+        var state2 = track[idx+1];
+        var factor = (time - state1.t) / (state2.t - state1.t);
+        var lon   = state1.ln + (state2.ln - state1.ln) * factor;
+        var lat   = state1.lt + (state2.lt - state1.lt) * factor;
+        var alt   = state1.h + (state2.h - state1.h) * factor;
+        var speed = state1.v + (state2.v - state1.v) * factor;
+        return { time: time, lon: lon, lat: lat, alt: alt, speed: speed };
+    }
+    catch (ex) {
+        window.location.reload(true);
+        return null;
+    }
+}
+
+function getIndex(time) {   // time in seconds since Jan. 01, 1970 UTC
+    var i = 0;
+    while ( (time > track[i].t) && (i < track.length) )
+        i++;
+    return i - 1;
+}
