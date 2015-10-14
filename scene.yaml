@@ -149,7 +149,7 @@ styles:
                     normal = mix(normal,sphereNormals(latlon),alpha);
                     
                     st = (latlon.yx/vec2(180.,90.)+1.)*.5;           // 0 -1
-                    normal = normalize(normal+normalmap(st)*alpha);
+                    normal = (normal+normalmap(st)*alpha);
                 color: |
                     updateSun();
                 filter: |
