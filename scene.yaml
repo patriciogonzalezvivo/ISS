@@ -123,38 +123,42 @@ styles:
                 u_night_map: imgs/earth-texture-night-hd.jpg
                 u_sun_offset: [0,23]
             blocks:
+                global: |
+                    vec3 sphereNormals (vec2 latlon) {
+                        return (rotateY3D(deg2rad(latlon.y)) * rotateX3D(deg2rad(latlon.x))*v_normal*10.);
+                    }
+                    vec3 normalmap (vec2 st) {
+                        return texture2D(u_normal_map,fract(st)).rgb*2.-1.;
+                    }
+                    vec4 multitexture ( vec2 st, float lightF ) {
+                        vec4 color = mix(texture2D(u_night_map,fract(st)), 
+                                        texture2D(u_day_map,fract(st)),
+                                        lightF);
+                        float clouds = texture2D(u_cloud_map,fract(st+vec2(u_time,sin(u_time))*.001 ) ).r;
+                        return mix(color-clouds,color+clouds,lightF);;
+                    }
+                    void updateSun () {
+                        vec3 sun_pos = vec3(.0,.0,1495978707.00)*u_meters_per_pixel;
+                        sun_pos = rotateY3D(deg2rad(u_sun_offset.x))*rotateX3D(deg2rad(u_sun_offset.y))*sun_pos;
+                        point_light.position.xyz = sun_pos;
+                    }
                 normal: |
                     float alpha = pow(1.-map(u_map_position.z,6.,9.,0.,1.),5.0);
                     vec2 st = u_map_position.xy+v_position.xy;
-                    vec2 pos = vec2(y2lat_m(st.y),x2lon_m(st.x));
-                    mat3 sphere = rotateY3D(deg2rad(pos.y)) * rotateX3D(deg2rad(pos.x));
-                    normal = mix(normal,sphere*vec3(.0,.0,10.),alpha);
-                    pos /= vec2(90.,180.); // Normalize
-                    pos = (pos+1.)*.5; // re-map between 0.0 and 1.
-                    normal = ( normal + (texture2D(u_normal_map,fract(pos.yx)).rgb*2.-1.)*alpha);
+                    vec2 latlon = vec2(y2lat_m(st.y),x2lon_m(st.x)); // 90/180
+                    normal = mix(normal,sphereNormals(latlon),alpha);
+                    
+                    st = (latlon.yx/vec2(180.,90.)+1.)*.5;           // 0 -1
+                    normal = normalize(normal+normalmap(st)*alpha);
                 color: |
-                    vec3 sun_pos = vec3(.0,.0,1495978707.00)*u_meters_per_pixel;
-                    sun_pos = rotateY3D(deg2rad(u_sun_offset.x))*rotateX3D(deg2rad(u_sun_offset.y))*sun_pos;
-                    
-                    point_light.position.xyz = sun_pos;
-                    
-                    vec4 night = texture2D(u_night_map,fract(pos.yx));
-                    vec4 day = texture2D(u_day_map,fract(pos.yx));
+                    updateSun();
                 filter: |
-                    color = mix(v_color,mix(night,day,light_accumulator_diffuse.r),alpha);
-                    float clouds = texture2D(u_cloud_map,fract(pos.yx+vec2(u_time,sin(u_time))*.001 ) ).r;
-                    color = mix(color,mix(color-clouds,color+clouds,light_accumulator_diffuse.r),alpha);
-    grid:
-        base: polygons
-        mix: [grids-tile, filter-grain]
-        shaders:
-            blocks:
-                color: |
-                    color.rgb += vec3(.2)*tileGrid();
+                    color = mix(v_color,multitexture(st,light_accumulator_diffuse.r),alpha);
     earth_texture:
         mix: textures
         material: 
             specular: black
+            shininess: 0.
     water_texture:
         mix: grid
         material: 
