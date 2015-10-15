@@ -83,7 +83,9 @@ function update(time) {   // time in seconds since Jan. 01, 1970 UTC
     var offset_y = offset_sin_factor * 23.44; // Map onto angle. Maximum angle is 23.44° in both directions
 
     var sunPos = [offset_x, offset_y]; 
-    scene.styles.sunlight.shaders.uniforms.u_sun_offset = sunPos;
+    scene.styles.earth.shaders.uniforms.u_sun_offset = sunPos;
+    scene.styles.water.shaders.uniforms.u_sun_offset = sunPos;
+    scene.styles.buildings.shaders.uniforms.u_sun_offset = sunPos;
 }
 
 function getCurrentTime() {   // time in seconds since Jan. 01, 1970 UTC

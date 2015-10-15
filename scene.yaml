@@ -286,7 +286,7 @@ styles:
         mix: [geometry-projection, geometry-matrices, functions-map]
         shaders:
             uniforms:
-                u_sun_offset: [-61,-9]
+                u_sun_offset: [0,0]
             blocks: 
                 global: |
                     mat3 sphereMatrix (vec2 latlon) {
