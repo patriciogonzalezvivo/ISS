@@ -111,9 +111,30 @@ styles:
                     float map (in float value, in float inputMin, in float inputMax, in float outputMin, in float outputMax) {
                         return map(value, inputMin, inputMax, outputMin, outputMax, true); 
                     }
+    sunlight:
+        mix: [geometry-projection, geometry-matrices, functions-map]
+        shaders:
+            uniforms:
+                u_sun_offset: [0,23]
+            blocks: 
+                global: |
+                    vec3 sphereNormals (vec2 latlon, vec3 normal) {
+                        return normalize(rotateY3D(deg2rad(latlon.y)) * rotateX3D(deg2rad(latlon.x))*normal)*3.;
+                    }
+                    void updateSun () {
+                        vec3 sun_pos = vec3(.0,.0,1495978707.00)*u_meters_per_pixel;
+                        sun_pos = rotateY3D(deg2rad(u_sun_offset.x))*rotateX3D(deg2rad(u_sun_offset.y))*sun_pos;
+                        point_light.position.xyz = sun_pos;
+                    }
+                normal: |
+                    vec2 pos = u_map_position.xy+v_position.xy;
+                    vec2 latlon = vec2(y2lat_m(pos.y),x2lon_m(pos.x)); // 90/180
+                    normal = sphereNormals(latlon, normal);
+                color: |
+                    updateSun();
     textures:
         base: polygons
-        mix: [geometry-projection,geometry-matrices,functions-map]
+        mix: [sunlight]
         animated: true
         shaders:
             uniforms:
@@ -121,12 +142,8 @@ styles:
                 u_cloud_map: imgs/earth-clouds-hd.jpg
                 u_day_map: imgs/earth-texture-day-xhd.jpg
                 u_night_map: imgs/earth-texture-night-hd.jpg
-                u_sun_offset: [0,23]
             blocks:
                 global: |
-                    vec3 sphereNormals (vec2 latlon) {
-                        return (rotateY3D(deg2rad(latlon.y)) * rotateX3D(deg2rad(latlon.x))*v_normal*10.);
-                    }
                     vec3 normalmap (vec2 st) {
                         return texture2D(u_normal_map,fract(st)).rgb*2.-1.;
                     }
@@ -137,33 +154,23 @@ styles:
                         float clouds = texture2D(u_cloud_map,fract(st+vec2(u_time,sin(u_time))*.001 ) ).r;
                         return mix(color-clouds,color+clouds,lightF);;
                     }
-                    void updateSun () {
-                        vec3 sun_pos = vec3(.0,.0,1495978707.00)*u_meters_per_pixel;
-                        sun_pos = rotateY3D(deg2rad(u_sun_offset.x))*rotateX3D(deg2rad(u_sun_offset.y))*sun_pos;
-                        point_light.position.xyz = sun_pos;
-                    }
                 normal: |
-                    float alpha = pow(1.-map(u_map_position.z,6.,9.,0.,1.),5.0);
-                    vec2 st = u_map_position.xy+v_position.xy;
-                    vec2 latlon = vec2(y2lat_m(st.y),x2lon_m(st.x)); // 90/180
-                    normal = mix(normal,sphereNormals(latlon),alpha);
-                    
-                    st = (latlon.yx/vec2(180.,90.)+1.)*.5;           // 0 -1
-                    normal = (normal+normalmap(st)*alpha);
-                color: |
-                    updateSun();
+                    float SatOsmPct = pow(1.-map(u_map_position.z,6.,9.,0.,1.),5.0);
+                    vec2 uv = (latlon.yx/vec2(180.,90.)+1.)*.5;           // 0 -1
+                    normal = (normal+normalmap(uv)*SatOsmPct);
                 filter: |
-                    color = mix(v_color,multitexture(st,light_accumulator_diffuse.r),alpha);
-    earth_texture:
+                    color = mix(color,multitexture(uv,light_accumulator_diffuse.r),SatOsmPct);
+    earth:
         mix: textures
         material: 
+            diffuse: white
             specular: black
-            shininess: 0.
-    water_texture:
-        mix: grid
-        material: 
+    water:
+        mix: textures
+        material:
+            diffuse: white
             specular: white
-    borders:
+    spline:
         base: lines
         lighting: false
     buildings:
@@ -176,99 +183,82 @@ layers:
     earth:
         data: { source: osm }
         draw:
-            textures:
+            earth:
                 order: 0
                 color: '#555'
-            borders:
+            spline:
                 order: 3
                 color: white
                 width: [[1,0px],[5,1.5px]]
     water:
         data: { source: osm }
         draw:
-            textures:
+            water:
                 order: 1
                 color: '#ddd'
-    boundaries:
-        data: { source: osm }
-        draw:
-            borders:
-                order: 3
-                color: white
-                width: [[1,0px],[3,0px],[5,.5px],[10,1px]]
     roads:
         data: { source: osm, layer: roads }
         filter: { not: { highway: service, kind: rail } }
         draw:
-            borders:
+            spline:
                 order: 7
-                color: [0.83, 0.83, 0.83]
-                width: function () { return Math.log($zoom); }
+                color: white
+                width: [[1,0px],[6,.25px], [10, .5px], [15, .75px], [17, 5m]]
         highway:
             filter: { kind: highway }
             draw:
-                borders:
-                    # put highways on top of all other roads
+                spline:
                     order: 8
                     color: [1.000,0.897,0.058]
-                    width: [[5, 0px], [11, 2px], [14, 3px], [16, 4px], [17, 10m]]
+                    width: [[1,0px], [6,.25px], [11, 2px], [14, 3px], [16, 4px], [17, 10m]]
             link:
                 filter: { is_link: yes } # on- and off-ramps, etc
                 draw:
-                    borders:
+                    spline:
                         color: [1.000,0.933,0.710]
-                        width: [[5, 0px], [14, 3px], [16, 5px], [18, 10m]]
+                        width: [[10,0px], [14, 3px], [16, 5px], [18, 10m]]
                 tunnel-link:
                     filter: {is_tunnel: yes, $zoom: {min: 13} }
                     draw:
-                        borders:
+                        spline:
                             color: [0.805,0.748,0.557]
             tunnel:
                 filter: {is_tunnel: yes, $zoom: {min: 13} }
                 draw:
-                    borders:
+                    spline:
                         order: 5
                         color: [0.805,0.748,0.557]
         major_road:
             filter: { kind: major_road }
             draw:
-                borders:
-                    color: [[13, [0.8, 0.8, 0.8]], [17, [1, 1, 1]]]
-                    width: [[5, 0px], [14, 2px], [16, 2.5px], [19, 8m]]
-            primary:
-                filter: { highway: primary }
-                draw:
-                    borders:
-                        width: [[5, 0px], [11, 1.5px], [13, 2.5px], [16, 2.5px], [19, 8m]]
-            secondary:
-                filter: { highway: secondary }
-                draw:
-                    borders:
-                        width: [[5, 0px], [13, 1.5px], [14, 2.5px], [16, 2.5px], [19, 8m]]
-            tertiary:
-                filter: { highway: tertiary }
-                draw:
-                    borders:
-                        width: [[5, 0px], [13, .75px], [14, 2.5px], [16, 2.5px], [19, 8m]]
-        minor_road:
-            filter: { kind: minor_road, not: { highway: service } }
-            draw:
-                borders:
-                    # order: 3
-                    color: [[15, [0.6, 0.6, 0.6]], [17, [0.8, 0.8, 0.8]]]
-                    width: [[5, 0px], [14, 1.5px], [15, 3px], [16, 5m]]
+                spline:
+                    color: [[13, [0.8, 0.8, 0.8]], [17, white]]
+                    width: [[1,0px], [6,.5px], [11,1px], [14, 2px], [16, 2.5px], [19, 8m]]
+                    primary:
+                        filter: { highway: primary }
+                        draw:
+                            spline:
+                                width: [[1,0px], [6,.5px], [11,1px], [11, 1.5px], [13, 2.5px], [16, 2.5px], [19, 8m]]
+                    secondary:
+                        filter: { highway: secondary }
+                        draw:
+                            spline:
+                                width: [[1,0px], [6,.5px], [11,1px], [13, 1.5px], [14, 2.5px], [16, 2.5px], [19, 8m]]
+                    tertiary:
+                        filter: { highway: tertiary }
+                        draw:
+                            spline:
+                                width: [[1,0px], [6,.5px], [11,1px], [13, .75px], [14, 2.5px], [16, 2.5px], [19, 8m]]
         path:
             filter: { kind: path }
             draw:
-                borders:
+                spline:
                     color: [0.8, 0.8, 0.8]
-                    width: [[5, 0], [17, 3m]]
-
+                    width: [[14,.1px],[16,.5px], [17, 2m]]
         z-order:
             filter: { $zoom: {min: 14} }
             draw:
-                borders:
-                    # let roads sort themselves past zoom 14
+                spline:
                     order: function() { return 6 + feature.sort_key; }
     buildings:
         data: { source: osm }

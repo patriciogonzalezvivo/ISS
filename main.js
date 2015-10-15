@@ -12,7 +12,8 @@ map = (function () {
     var map = L.map('map',{
                             scrollWheelZoom: 'center', 
                             dragging: false,
-                            zoomControl:false 
+                            minZoom: 3.5,
+                            zoomControl: false 
                         });
     // Tangram Layer
     var layer = Tangram.leafletLayer({
@@ -82,7 +83,6 @@ function update(time) {   // time in seconds since Jan. 01, 1970 UTC
     var offset_y = offset_sin_factor * 23.44; // Map onto angle. Maximum angle is 23.44° in both directions
 
     scene.styles.textures.shaders.uniforms.u_sun_offset = [offset_x, offset_y];
-    // console.log(scene.styles.textures.shaders.uniforms.u_sun_offset);
 }
 
 function getCurrentTime() {   // time in seconds since Jan. 01, 1970 UTC
