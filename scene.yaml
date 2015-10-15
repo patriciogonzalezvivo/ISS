@@ -84,6 +84,25 @@ styles:
                     float x2lon_m (float x) { return rad2deg(x/EARTH_RADIUS); }
                     float lat2y_m (float lat) { return EARTH_RADIUS*log(tan(QUATER_PI+ deg2rad(lat)/2.0)); }
                     float lon2x_m (float lon) { return deg2rad(lon)*EARTH_RADIUS; }
+    functions-aastep:
+        shaders:
+            extensions: OES_standard_derivatives
+            blocks:
+                global: |
+                    // AntiAliased Step function
+                    //=============================
+                    float aastep(float threshold, float value) {
+                        #ifdef TANGRAM_FRAGMENT_SHADER
+                            #ifdef TANGRAM_EXTENSION_OES_standard_derivatives
+                                float afwidth = length(vec2(dFdx(value), dFdy(value))) * 0.70710678118654757;
+                                return smoothstep(threshold-afwidth, threshold+afwidth, value);
+                            #else
+                                return step(threshold, value);
+                            #endif  
+                        #else
+                            return step(threshold, value);
+                        #endif
+                    }
     functions-map:
         shaders:
             defines:
@@ -285,9 +304,14 @@ styles:
                     normal = normalize(sphere*normal)*2.;
                 color: |
                     updateSun();
+    zoom:
+        shaders:
+            blocks: 
+                normal: |
+                    float SatOsmPct = pow(1.-map(u_map_position.z,6.,9.,0.,1.),5.0);
     textures:
         base: polygons
-        mix: [sunlight, shapes-cross]
+        mix: [sunlight, zoom]
         animated: true
         shaders:
             uniforms:
@@ -310,29 +334,31 @@ styles:
                         return color+clouds;
                     }
                 normal: |
-                    float SatOsmPct = pow(1.-map(u_map_position.z,6.,9.,0.,1.),5.0);
                     vec2 uv = (latlon.yx/vec2(180.,90.)+1.)*.5;
                     normal = mix(normal,normalmap(uv,sphere)*3.,SatOsmPct);
-                    
-                    vec2 st = gl_FragCoord.xy/u_resolution.xy;
-                    float aspect = u_resolution.x/u_resolution.y;
-                    st -= .5;
-                    st.x *= aspect;
-                    st += .5;
                 filter: |
-                    color = mix(color,multitexture(uv,light_accumulator_diffuse.r),SatOsmPct);
-                    
-                    float sat = map(u_map_position.z,0.,6.,0.,1.,false);
+                    color = mix(color,multitexture(uv,light_accumulator_diffuse.r),SatOsmPct);       
+    satelite:
+        mix: shapes-cross
+        shaders:
+            blocks: 
+                filter: |
+                    vec2 st_center = gl_FragCoord.xy/u_resolution.xy;
+                    float aspect = u_resolution.x/u_resolution.y;
+                    st_center -= .5;
+                    st_center.x *= aspect;
+                    st_center += .5;
+                    float sat = map(u_map_position.z,3.,6.,0.1,1.,false);
                     float zoom_factor = pow(sat,8.);//1.-SatOsmPct;
-                    color += cross(st,.00002*zoom_factor,.02*zoom_factor)*SatOsmPct;
+                    color += cross(st_center,.00002*zoom_factor,.02*zoom_factor)*SatOsmPct;
                     
     earth:
-        mix: textures
+        mix: [textures, satelite]
         material: 
             diffuse: white
             specular: black
     water:
-        mix: [textures, generative-noise]
+        mix: [textures, satelite, generative-noise]
         material:
             diffuse: white
             specular: white
@@ -351,6 +377,24 @@ styles:
             blocks:
                 color: |
                     color.rgb *= vec3(min((v_world_position.z*.001 + .5),1.));
+    area:
+        base: polygons
+        mix: [functions-aastep, functions-map, zoom, satelite]
+        blend: inlay
+        shaders: 
+            blocks: 
+                global: |
+                    mat2 rotate2d(float angle){
+                        return mat2(cos(angle),-sin(angle),
+                                    sin(angle),cos(angle));
+                    }
+                    float stripes(vec2 st, float width){
+                        st = rotate2d(.72)*st;
+                        st *= 92.;
+                        return aastep(.5+width*0.5,abs(sin(st.y*3.14159265358)));
+                    }
+                filter: |
+                    color.a = stripes(st_center*2.,SatOsmPct*1.4)*.5;
 layers:
     earth:
         data: { source: osm }
@@ -368,6 +412,12 @@ layers:
             water:
                 order: 1
                 color: '#ddd'
+    landuse:
+        data: { source: osm }
+        draw:
+            area:
+                order: 2
+                color: gray
     roads:
         data: { source: osm, layer: roads }
         filter: { not: { highway: service, kind: rail } }
@@ -451,7 +501,7 @@ layers:
             text:
                 font:
                     style: italic
-                    size: 14px
+                    size: 16px
                     family: Helvetica
                     fill: black
-                    stroke: { color: white , width: 3 }
+                    stroke: { color: white , width: 4 }
