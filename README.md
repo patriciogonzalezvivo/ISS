@@ -1,8 +1,8 @@
 ![ISS-2011](imgs/ISS-2011.png)
 
-# OpenStreetMap from the International Space Station
+# OpenStreetMap from the ISS
 
-	A vision of the earth without political boundaries, bands or sides. A perspective of free data and human collaboration. 
+An earth without ideological boundaries. A perspective of free data and human collaboration. 
 
 ## Source
 
