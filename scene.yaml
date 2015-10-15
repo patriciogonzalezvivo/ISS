@@ -3,7 +3,7 @@
 sources:
     osm:
         type: TopoJSON
-        url:  //vector.mapzen.com/osm/all/{z}/{x}/{y}.topojson?api_key=vector-tiles-P6dkVl4
+        url:  //vector.mapzen.com/osm/all/{z}/{x}/{y}.topojson?api_key=vector-tiles-DFFH1UM
 cameras:
     perspective:
         type: perspective
@@ -318,7 +318,7 @@ styles:
                 u_normal_map: imgs/earth-normals-hd.jpg
                 u_cloud_map: imgs/earth-clouds-hd.jpg
                 u_day_map: imgs/earth-texture-day-xhd.jpg
-                u_night_map: imgs/earth-texture-night-hd.jpg
+                u_night_map: imgs/earth-texture-night-xhd.jpg
             blocks:
                 global: |
                     vec3 normalmap (vec2 st, mat3 normalMat) {
@@ -329,7 +329,7 @@ styles:
                         vec4 color = mix(texture2D(u_night_map,fract(st)), 
                                         texture2D(u_day_map,fract(st)),
                                         clamp(lightF,0.,1.));
-                        float clouds = texture2D(u_cloud_map,fract(st+vec2(u_time,sin(u_time))*.001 ) ).r;
+                        float clouds = texture2D(u_cloud_map,fract(st+vec2(u_time,0)*.001 ) ).r;
                         clouds *= lightF*2.-1.;
                         return color+clouds;
                     }

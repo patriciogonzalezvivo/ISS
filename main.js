@@ -4,6 +4,7 @@ var lastDayNightOverlayUpdate = 0;
 var isMiles = false;
 var MILE_IN_KM = 1.609344;
 var zoom = 6
+var place
 
 map = (function () {
     'use strict';
@@ -69,6 +70,10 @@ function update(time) {   // time in seconds since Jan. 01, 1970 UTC
     var state = getSatelliteState(time);
     map.panTo([state.lat, state.lon],{animate:true, duration: 1., easeLinearity: 1});
 
+    updateGeocode(state.lat, state.lon);
+
+    console.log(place);
+
     // Update Sun position
     var now = new Date();
     var cur_hour = now.getHours();
@@ -120,4 +125,64 @@ function getIndex(time) {   // time in seconds since Jan. 01, 1970 UTC
     while ( (time > track[i].t) && (i < track.length) )
         i++;
     return i - 1;
+}
+
+function httpGet (url, callback) {
+    var request = new XMLHttpRequest();
+    var method = 'GET';
+
+    request.onreadystatechange = function () {
+        if (request.readyState === 4 && request.status === 200) {
+            var response = request.responseText;
+
+            // TODO: Actual error handling
+            var error = null;
+            callback(error, response);
+        }
+    };
+    request.open(method, url, true);
+    request.send();
+}
+
+function debounce(func, wait, immediate) {
+    var timeout;
+    return function() {
+        var context = this,
+            args = arguments;
+        var later = function() {
+            timeout = null;
+            if (!immediate) {
+                func.apply(context, args);
+            }
+        };
+        var callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) {
+            func.apply(context, args);
+        }
+    };
+}
+
+function updateGeocode (lat, lng) {
+    const PELIAS_KEY = 'search--cv2Foc';
+    const PELIAS_HOST = 'search.mapzen.com';
+    const PELIAS_THROTTLE = 300;
+    const endpoint = `//${PELIAS_HOST}/v1/reverse?point.lat=${lat}&point.lon=${lng}&size=1&layers=coarse&api_key=${PELIAS_KEY}`;
+
+    debounce(httpGet(endpoint, function(err, res){
+        if (err) {
+            console.error(err);
+        }
+
+        // TODO: Much more clever viewport/zoom based determination of current location
+        var response = JSON.parse(res);
+        if (!response.features || response.features.length === 0) {
+            // Sometimes reverse geocoding returns no results
+            place = 'Unknown location';
+        }
+        else {
+            place = response.features[0].properties.label;
+        }
+    }), PELIAS_THROTTLE);
 }
