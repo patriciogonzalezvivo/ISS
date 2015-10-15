@@ -13,29 +13,19 @@
     <title>OpenStreetMap from the Internation Space Station</title>
     <link rel="stylesheet" href="lib/leaflet/leaflet.css" />
 
-    <style>
-        body {
-            margin: 0px;
-            border: 0px;
-            padding: 0px;
-        }
-
-        #map {
-            background: black;
-            height: 100%;
-            width: 100%;
-            position: absolute;
-            z-index: 0;
-        }
-
-        #mz-citysearch, #mz-geolocator { 
-            display: none 
-        }
-    </style>
+    <link type='text/css' rel='stylesheet' href="css/style.css">
   </head>
 
   <body>
     <div id="map"></div>
+
+    <div id="info" style="position: absolute;" >
+        <p id="loc">over</p>
+    </div>
+
+    <iframe width="480" height="270" src="http://www.ustream.tv/embed/9408562?html5ui&amp;autoplay=true" allowfullscreen webkitallowfullscreen scrolling="no" frameborder="0" style="position: absolute; top: 10px; right: 10px; border: 0 none transparent;"></iframe>
+
+    
 
     <!-- 3rd party libraries -->
     <script src="lib/leaflet/leaflet.js"></script>
@@ -65,10 +55,6 @@
       repo: 'https://github.com/patriciogonzalezvivo/ISS'
     });
     </script>
-
-    <iframe width="480" height="270" src="http://www.ustream.tv/embed/9408562?html5ui&amp;autoplay=true" allowfullscreen webkitallowfullscreen scrolling="no" frameborder="0" style="position: absolute; top: 10px; right: 10px; border: 0 none transparent;"></iframe>
-
-    <!-- <iframe width="480" height="270" src="http://www.ustream.tv/embed/17074538?html5ui" allowfullscreen webkitallowfullscreen scrolling="no" frameborder="0" style="position: absolute; top: 290px; right: 10px; border: 0 none transparent;"></iframe> -->
 
   </body>
 </html>

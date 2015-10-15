@@ -1,0 +1,36 @@
+@font-face {
+    font-family: 'larabie';
+    src: url(fonts/larabie.ttf);
+}
+
+body {
+    font-family: 'larabie', Helvetica, Arial;
+    margin: 0px;
+    border: 0px;
+    padding: 0px;
+}
+
+#map {
+    background: black;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    z-index: 0;
+}
+
+#mz-citysearch, #mz-geolocator { 
+    display: none 
+}
+
+#info {
+    bottom: 10px; 
+    width: 100%;
+    text-align: center;
+    pointer-event: none;
+    color: white;
+    text-outline: 2px 2px black;
+}
+
+#loc {
+    background: rgba(0,0,0,0.4);
+}

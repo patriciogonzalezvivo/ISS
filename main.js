@@ -14,6 +14,7 @@ map = (function () {
                             scrollWheelZoom: 'center', 
                             dragging: false,
                             minZoom: 3.5,
+                            maxZoom: 12,
                             zoomControl: false 
                         });
     // Tangram Layer
@@ -71,8 +72,7 @@ function update(time) {   // time in seconds since Jan. 01, 1970 UTC
     map.panTo([state.lat, state.lon],{animate:true, duration: 1., easeLinearity: 1});
 
     updateGeocode(state.lat, state.lon);
-
-    console.log(place);
+    document.getElementById('loc').innerHTML = "Over " + place + " (" + state.lat.toFixed(4) + " , " + state.lon.toFixed(4) + " )";
 
     // Update Sun position
     var now = new Date();

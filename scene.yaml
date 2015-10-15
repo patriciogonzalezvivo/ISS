@@ -497,7 +497,7 @@ styles:
         shaders: 
             blocks: 
                 normal: |
-                    normal += snoise(vec3(v_world_position.xy*0.01,u_time*.5))*0.02;
+                    normal += snoise(vec3(v_world_position.xy*0.001,u_time*.5))*0.02;
     spline:
         base: lines
         lighting: false
