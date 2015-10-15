@@ -1,4 +1,8 @@
-# OSM from the ISS
+![ISS-2011](imgs/ISS-2011.png)
+
+# OpenStreetMap from the International Space Station
+
+	A vision of the earth without political boundaries, bands or sides. A perspective of free data and human collaboration. 
 
 ## Source
 
@@ -10,7 +14,7 @@
 * [Live ISS UStream](http://www.ustream.tv/channel/live-iss-stream)
 * [ISS HD Earth Viewing Experiment](http://www.ustream.tv/channel/iss-hdev-payload)
 
-### To run locally
+## Install a local version of this project
 
 Start a web server in the repo's directory:
 
