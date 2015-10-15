@@ -112,17 +112,18 @@ styles:
                         return map(value, inputMin, inputMax, outputMin, outputMax, true); 
                     }
     sunlight:
+        base: polygons
         mix: [geometry-projection, geometry-matrices, functions-map]
         shaders:
             uniforms:
-                u_sun_offset: [0,23]
+                u_sun_offset: [10,-9.99]
             blocks: 
                 global: |
                     vec3 sphereNormals (vec2 latlon, vec3 normal) {
                         return normalize(rotateY3D(deg2rad(latlon.y)) * rotateX3D(deg2rad(latlon.x))*normal)*3.;
                     }
                     void updateSun () {
-                        vec3 sun_pos = vec3(.0,.0,1495978707.00)*u_meters_per_pixel;
+                        vec3 sun_pos = vec3(.0,.0,1495.97870700)*u_meters_per_pixel;
                         sun_pos = rotateY3D(deg2rad(u_sun_offset.x))*rotateX3D(deg2rad(u_sun_offset.y))*sun_pos;
                         point_light.position.xyz = sun_pos;
                     }
@@ -156,7 +157,7 @@ styles:
                     }
                 normal: |
                     float SatOsmPct = pow(1.-map(u_map_position.z,6.,9.,0.,1.),5.0);
-                    vec2 uv = (latlon.yx/vec2(180.,90.)+1.)*.5;           // 0 -1
+                    vec2 uv = (latlon.yx/vec2(180.,90.)+1.)*.5;
                     normal = (normal+normalmap(uv)*SatOsmPct);
                 filter: |
                     color = mix(color,multitexture(uv,light_accumulator_diffuse.r),SatOsmPct);
@@ -174,6 +175,7 @@ styles:
         base: lines
         lighting: false
     buildings:
+        mix: sunlight
         base: polygons
         shaders:
             blocks:

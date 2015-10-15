@@ -77,12 +77,13 @@ function update(time) {   // time in seconds since Jan. 01, 1970 UTC
     var cur_jul = now.getJulian() - 1;
     var equinox_jul = new Date(now.getFullYear(),2,20,24,-now.getTimezoneOffset(),0,0).getJulian() - 1;
 
-    var offset_x = -Math.round(((cur_hour*3600 + cur_min*60 + cur_sec)/86400) * 180 ); // Resulting offset X
+    var offset_x = 90-Math.round(((cur_hour*3600 + cur_min*60 + cur_sec)/86400) * 180 ); // Resulting offset X
     var offset_sin = ((365.25 - equinox_jul + cur_jul)%365.25)/365.25; // Day offset, mapped on the equinox offset
     var offset_sin_factor = Math.sin(offset_sin * 2 * Math.PI); // Sine wave offset
     var offset_y = offset_sin_factor * 23.44; // Map onto angle. Maximum angle is 23.44° in both directions
 
-    scene.styles.textures.shaders.uniforms.u_sun_offset = [offset_x, offset_y];
+    var sunPos = [offset_x, offset_y]; 
+    scene.styles.sunlight.shaders.uniforms.u_sun_offset = sunPos;
 }
 
 function getCurrentTime() {   // time in seconds since Jan. 01, 1970 UTC
