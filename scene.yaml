@@ -276,7 +276,12 @@ styles:
                     st_center += .5;
                     float light = 1.;
                     light = abs((step(.5,light_accumulator_diffuse.r) * smoothstep(.0,1.,1.-SatOsmPct))-light);
-                    color.rgb = mix(color.rgb,vec3(light),cross(st_center,.00002,.02));
+                    
+                    float target = 0.0;
+                    target += rect(st_center,.21)-rect(st_center,.2);
+                    target *= 1.0-cross(st_center,.5,1.);
+                    target += cross(st_center,.00002,.02);
+                    color.rgb = mix(color.rgb,vec3(light),target);
                     
                     // GRID
                     vec2 st = getTileCoords();
