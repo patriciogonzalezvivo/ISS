@@ -13,7 +13,7 @@ map = (function () {
     var map = L.map('map',{
                             scrollWheelZoom: 'center', 
                             dragging: false,
-                            minZoom: 3,
+                            minZoom: 3.5,
                             maxZoom: 12,
                             zoomControl: false 
                         });
