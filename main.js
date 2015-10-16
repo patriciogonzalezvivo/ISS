@@ -3,8 +3,9 @@ var timeDiff = 0;
 var lastDayNightOverlayUpdate = 0;
 var isMiles = false;
 var MILE_IN_KM = 1.609344;
-var zoom = 6
-var place
+var zoom = 6;
+var place = "";
+var lastState = {};
 
 map = (function () {
     'use strict';
@@ -69,7 +70,12 @@ Date.prototype.getJulian = function() {
 function update(time) {   // time in seconds since Jan. 01, 1970 UTC
     // Update position to the satelite
     var state = getSatelliteState(time);
-    map.panTo([state.lat, state.lon],{animate:true, duration: 1., easeLinearity: 1});
+    var options = {animate:true, duration: 1., easeLinearity: 1};
+
+    if (lastState.lon > 0 && state.lon < 0) {
+        options.animate = false;
+    }
+    map.panTo([state.lat, state.lon],options);
 
     updateGeocode(state.lat, state.lon);
     document.getElementById('loc').innerHTML = "Over " + place + " (" + state.lat.toFixed(4) + " , " + state.lon.toFixed(4) + " )";
@@ -91,6 +97,8 @@ function update(time) {   // time in seconds since Jan. 01, 1970 UTC
     scene.styles.earth.shaders.uniforms.u_sun_offset = sunPos;
     scene.styles.water.shaders.uniforms.u_sun_offset = sunPos;
     // scene.styles.buildings.shaders.uniforms.u_sun_offset = sunPos;
+
+    lastState = state;
 }
 
 function getCurrentTime() {   // time in seconds since Jan. 01, 1970 UTC
