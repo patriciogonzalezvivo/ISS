@@ -1,6 +1,6 @@
 ![ISS-2011](imgs/ISS-2011.png)
 
-# OSM from the ISS
+# View of OSM from the ISS
 
 An earth without ideological boundaries. A perspective of free data and human collaboration. 
 
