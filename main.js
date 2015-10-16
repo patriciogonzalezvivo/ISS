@@ -13,7 +13,7 @@ map = (function () {
     var map = L.map('map',{
                             scrollWheelZoom: 'center', 
                             dragging: false,
-                            minZoom: 3.5,
+                            minZoom: 3,
                             maxZoom: 12,
                             zoomControl: false 
                         });
@@ -90,7 +90,7 @@ function update(time) {   // time in seconds since Jan. 01, 1970 UTC
     var sunPos = [offset_x, offset_y]; 
     scene.styles.earth.shaders.uniforms.u_sun_offset = sunPos;
     scene.styles.water.shaders.uniforms.u_sun_offset = sunPos;
-    scene.styles.buildings.shaders.uniforms.u_sun_offset = sunPos;
+    // scene.styles.buildings.shaders.uniforms.u_sun_offset = sunPos;
 }
 
 function getCurrentTime() {   // time in seconds since Jan. 01, 1970 UTC
@@ -185,4 +185,11 @@ function updateGeocode (lat, lng) {
             place = response.features[0].properties.label;
         }
     });
+}
+
+function unhide(divID) {
+    var item = document.getElementById(divID);
+    if (item) {
+        item.className=(item.className=='hidden')?'unhidden':'hidden';
+    }
 }

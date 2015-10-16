@@ -1,6 +1,6 @@
 ![ISS-2011](imgs/ISS-2011.png)
 
-# OpenStreetMap from the ISS
+# OSM from the ISS
 
 An earth without ideological boundaries. A perspective of free data and human collaboration. 
 

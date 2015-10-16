@@ -84,25 +84,6 @@ styles:
                     float x2lon_m (float x) { return rad2deg(x/EARTH_RADIUS); }
                     float lat2y_m (float lat) { return EARTH_RADIUS*log(tan(QUATER_PI+ deg2rad(lat)/2.0)); }
                     float lon2x_m (float lon) { return deg2rad(lon)*EARTH_RADIUS; }
-    functions-aastep:
-        shaders:
-            extensions: OES_standard_derivatives
-            blocks:
-                global: |
-                    // AntiAliased Step function
-                    //=============================
-                    float aastep(float threshold, float value) {
-                        #ifdef TANGRAM_FRAGMENT_SHADER
-                            #ifdef TANGRAM_EXTENSION_OES_standard_derivatives
-                                float afwidth = length(vec2(dFdx(value), dFdy(value))) * 0.70710678118654757;
-                                return smoothstep(threshold-afwidth, threshold+afwidth, value);
-                            #else
-                                return step(threshold, value);
-                            #endif  
-                        #else
-                            return step(threshold, value);
-                        #endif
-                    }
     functions-map:
         shaders:
             defines:
@@ -361,7 +342,7 @@ styles:
         shaders:
             uniforms:
                 u_normal_map: imgs/earth-normals-hd.jpg
-                u_cloud_map: imgs/earth-clouds-hd.jpg
+                # u_cloud_map: imgs/earth-clouds-hd.jpg
                 u_day_map: imgs/earth-texture-day-xhd.jpg
                 u_night_map: imgs/earth-texture-night-xhd.jpg
             blocks:
@@ -374,9 +355,11 @@ styles:
                         vec4 color = mix(texture2D(u_night_map,fract(st)), 
                                         texture2D(u_day_map,fract(st)),
                                         clamp(lightF,0.,1.));
-                        float clouds = texture2D(u_cloud_map,fract(st+vec2(u_time,0)*.001 ) ).r;
-                        clouds *= lightF*2.-1.;
-                        return color+clouds;
+                        return color;
+
+                        //float clouds = texture2D(u_cloud_map,fract(st+vec2(u_time,0)*.001 ) ).r;
+                        //clouds *= lightF*2.-1.;
+                        //return color+clouds;
                     }
                 filter: |
                     color = mix(color,multitexture(uv,light_accumulator_diffuse.r),SatOsmPct);       
@@ -398,15 +381,15 @@ styles:
                     vec2 st = getTileCoords();
                     float zoom = 0.0001+fract(u_map_position.z);
                     float overlayGrid = 0.0;
-                    overlayGrid += TileGrid();
+                    overlayGrid += TileGrid()*.5;
                     
                     // Crosses
                     vec2 crosses_st = st + .5;
                     vec2 crosses_st_f = fract(crosses_st);
                     overlayGrid *= 1.-rect(crosses_st_f, .005*(1.+(1.-zoom)));
-                    overlayGrid += cross(crosses_st_f, .0002, .01*(1.+(1.-zoom)) );
+                    overlayGrid += cross(crosses_st_f, .00015, .015*(1.+(1.-zoom)) )*.75;
                     
-                    color.rgb = mix(color.rgb,vec3(light),overlayGrid*.5);                    
+                    color.rgb = mix(color.rgb,vec3(light),overlayGrid);                    
     earth:
         mix: [textures, satelite]
         material: 
@@ -429,13 +412,13 @@ styles:
     spline:
         base: lines
         lighting: false
-    buildings:
-        mix: sunlight
-        base: polygons
-        shaders:
-            blocks:
-                color: |
-                    color.rgb *= vec3(min((v_world_position.z*.001 + .5),1.));
+    # buildings:
+    #     mix: sunlight
+    #     base: polygons
+    #     shaders:
+    #         blocks:
+    #             color: |
+    #                 color.rgb *= vec3(min((v_world_position.z*.001 + .5),1.));
     area:
         base: polygons
         mix: [functions-map, zoom, satelite]
@@ -541,18 +524,18 @@ layers:
             draw:
                 spline:
                     order: function() { return 6 + feature.sort_key; }
-    buildings:
-        data: { source: osm }
-        filter: { $zoom: { min: 10 } }
-        draw:
-            buildings:
-                order: 100
-                color: '#999'
-        extruded:
-            filter: { $zoom: { min: 10 } }
-            draw:
-                buildings:
-                    extrude: function () { return feature.height > 0 || $zoom >= 16; }
+    # buildings:
+    #     data: { source: osm }
+    #     filter: { $zoom: { min: 10 } }
+    #     draw:
+    #         buildings:
+    #             order: 100
+    #             color: '#999'
+    #     extruded:
+    #         filter: { $zoom: { min: 10 } }
+    #         draw:
+    #             buildings:
+    #                 extrude: function () { return feature.height > 0 || $zoom >= 16; }
     places:
         data: { source: osm }
         filter: { name: true }
