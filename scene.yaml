@@ -342,7 +342,7 @@ styles:
         shaders:
             uniforms:
                 u_normal_map: imgs/earth-normals-hd.jpg
-                # u_cloud_map: imgs/earth-clouds-hd.jpg
+                u_cloud_map: imgs/earth-clouds-hd.jpg
                 u_day_map: imgs/earth-texture-day-xhd.jpg
                 u_night_map: imgs/earth-texture-night-xhd.jpg
             blocks:
@@ -352,14 +352,15 @@ styles:
                         return normalTex;
                     }
                     vec4 multitexture ( vec2 st, float lightF ) {
-                        vec4 color = mix(texture2D(u_night_map,fract(st)), 
-                                        texture2D(u_day_map,fract(st)),
-                                        clamp(lightF,0.,1.));
-                        return color;
+                        vec4 color = vec4(1.);
+                        color = mix(texture2D(u_night_map,fract(st)), 
+                                    texture2D(u_day_map,fract(st)),
+                                    clamp(lightF,0.,1.));
+                        //return color;
 
-                        //float clouds = texture2D(u_cloud_map,fract(st+vec2(u_time,0)*.001 ) ).r;
-                        //clouds *= lightF*2.-1.;
-                        //return color+clouds;
+                        float clouds = texture2D(u_cloud_map,fract(st+vec2(u_time,0)*.0001 ) ).r;
+                        clouds *= lightF*2.-1.;
+                        return color+clouds;
                     }
                 filter: |
                     color = mix(color,multitexture(uv,light_accumulator_diffuse.r),SatOsmPct);       
