@@ -14,7 +14,7 @@ map = (function () {
     var map = L.map('map',{
                             scrollWheelZoom: 'center', 
                             dragging: false,
-                            minZoom: 3.5,
+                            minZoom: 4,
                             maxZoom: 12,
                             zoomControl: false 
                         });
@@ -33,7 +33,7 @@ map = (function () {
     window.scene = scene;
 
     // setView expects format ([lat, long], zoom)
-    map.setView([40.7238, -73.9881], 4);
+    map.setView([0, 0], 6);
 
     var hash = new L.Hash(map);
 
