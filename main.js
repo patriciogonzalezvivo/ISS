@@ -72,7 +72,7 @@ function update(time) {   // time in seconds since Jan. 01, 1970 UTC
     var state = getSatelliteState(time);
     var options = {animate:true, duration: 1., easeLinearity: 1};
 
-    if (state.lon < 173) {
+    if (state.lon < -173) {
         options.animate = false;
     }
     map.panTo([state.lat, state.lon],options);
