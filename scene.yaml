@@ -6,7 +6,7 @@ sources:
         url:  //vector.mapzen.com/osm/all/{z}/{x}/{y}.topojson?api_key=vector-tiles-DFFH1UM
 cameras:
     perspective:
-        type: perspective
+        type: flat
 lights:
     point_light:
         type: point
@@ -111,106 +111,6 @@ styles:
                     float map (in float value, in float inputMin, in float inputMax, in float outputMin, in float outputMax) {
                         return map(value, inputMin, inputMax, outputMin, outputMax, true); 
                     }
-    generative-random:
-        shaders:
-            blocks:
-                global: |
-                    // 1D Random for 1 and 2 dimentions
-                    // ================================
-                    float random(float x){ return fract(sin(x)*43758.5453);}
-                    float random(vec2 p) { return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x)))); }
-                    //
-                    // 2D Random for 2 dimentions
-                    // ================================
-                    vec2 random2 (vec2 xy) { return fract(sin(vec2(dot(xy,vec2(127.1,311.7)),dot(xy,vec2(269.5,183.3))))*43758.5453); }
-                    //
-                    // 3D Random for 2 dimentions
-                    // ================================
-                    vec3 random3 (vec2 xy) { return fract(sin(vec3( dot(xy,vec2(127.1,311.7)), dot(xy,vec2(269.5,183.3)), dot(xy,vec2(419.2,371.9)) ))*43758.5453); }
-                    vec3 random3 (vec3 c) {
-                        float j = 4096.0*sin(dot(c,vec3(17.0, 59.4, 15.0)));
-                        vec3 r;
-                        r.z = fract(512.0*j);
-                        j *= .125;
-                        r.x = fract(512.0*j);
-                        j *= .125;
-                        r.y = fract(512.0*j);
-                        return r-0.5;
-                    }
-    generative-noise:
-        mix: generative-random
-        shaders:
-            blocks:
-                global: |
-                    // 1D Value Noise for 1, 2 and 3 dimentions
-                    // ================================
-                    float noise (in float x) {
-                        float i = floor(x);
-                        float f = fract(x);
-                        float u = f * f * (3.0 - 2.0 * f);
-                        return mix(random(i), random(i + 1.0), u);
-                    }
-                    float noise (vec2 xy) {
-                        vec2 i = floor(xy);
-                        vec2 f = fract(xy);
-                        float a = random(i);
-                        float b = random(i + vec2(1.0, 0.0));
-                        float c = random(i + vec2(0.0, 1.0));
-                        float d = random(i + vec2(1.0, 1.0));
-                        vec2 u = f * f * (3.0 - 2.0 * f);
-                        return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-                    }
-                    float noise (vec3 xyz) {
-                        const vec3 step = vec3(110.0, 241.0, 171.0);
-                        vec3 i = floor(xyz);
-                        vec3 f = fract(xyz);
-                        float n = dot(i, step);
-                        vec3 u = f * f * (3.0 - 2.0 * f);
-                        return mix( mix(mix(random(n + dot(step, vec3(0,0,0))),
-                                            random(n + dot(step, vec3(1,0,0))),
-                                            u.x),
-                                        mix(random(n + dot(step, vec3(0,1,0))),
-                                            random(n + dot(step, vec3(1,1,0))),
-                                            u.x),
-                                        u.y),
-                                    mix(mix(random(n + dot(step, vec3(0,0,1))),
-                                        random(n + dot(step, vec3(1,0,1))),
-                                        u.x),
-                                        mix(random(n + dot(step, vec3(0,1,1))),
-                                            random(n + dot(step, vec3(1,1,1))),
-                                            u.x),
-                                    u.y),
-                                u.z);
-                    }
-                    //
-                    // Simplex Noise
-                    //
-                    const float F3 =  0.3333333;
-                    const float G3 =  0.1666667;
-                    float snoise (vec3 p) {
-                        vec3 s = floor(p + dot(p, vec3(F3)));
-                        vec3 x = p - s + dot(s, vec3(G3));
-                        vec3 e = step(vec3(0.0), x - x.yzx);
-                        vec3 i1 = e*(1.0 - e.zxy);
-                        vec3 i2 = 1.0 - e.zxy*(1.0 - e);
-                        vec3 x1 = x - i1 + G3;
-                        vec3 x2 = x - i2 + 2.0*G3;
-                        vec3 x3 = x - 1.0 + 3.0*G3;
-                        vec4 w, d;
-                        w.x = dot(x, x);
-                        w.y = dot(x1, x1);
-                        w.z = dot(x2, x2);
-                        w.w = dot(x3, x3);
-                        w = max(0.6 - w, 0.0);
-                        d.x = dot(random3(s), x);
-                        d.y = dot(random3(s + i1), x1);
-                        d.z = dot(random3(s + i2), x2);
-                        d.w = dot(random3(s + 1.0), x3);
-                        w *= w;
-                        w *= w;
-                        d *= w;
-                        return dot(d, vec4(52.0));
-                    }
     shapes-rect:
         shaders:
             blocks:
@@ -290,7 +190,7 @@ styles:
                     //=============================
                     float grid(in vec2 st, in float res, in float press){
                         st = fract(st*res);
-                        return 1.0-(step(press*res,st.x) * step(press*res,st.y));
+                        return 1.0-(step(press*res*.5,st.x) * step(press*res*.5,st.y));
                     }
                     float grid(in vec2 st, in float res){
                         return grid(st,res,0.005);
@@ -351,7 +251,7 @@ styles:
                         vec3 normalTex = texture2D(u_normal_map,fract(st)).rgb-.5;
                         return normalTex;
                     }
-                    vec4 multitexture ( vec2 st, float lightF ) {
+                    vec4 multitexture ( vec2 st, float lightF, float zoomF ) {
                         vec4 color = vec4(1.);
                         color = mix(texture2D(u_night_map,fract(st)), 
                                     texture2D(u_day_map,fract(st)),
@@ -360,10 +260,10 @@ styles:
 
                         float clouds = texture2D(u_cloud_map,fract(st+vec2(u_time,0)*.0001 ) ).r;
                         clouds *= lightF*2.-1.;
-                        return color+clouds;
+                        return color+clouds*zoomF;
                     }
                 filter: |
-                    color = mix(color,multitexture(uv,light_accumulator_diffuse.r),SatOsmPct);       
+                    color = mix(color,multitexture(uv,light_accumulator_diffuse.r,SatOsmPct),SatOsmPct);       
     satelite:
         mix: [shapes-cross, grid]
         shaders:
@@ -387,8 +287,13 @@ styles:
                     // Crosses
                     vec2 crosses_st = st + .5;
                     vec2 crosses_st_f = fract(crosses_st);
-                    overlayGrid *= 1.-rect(crosses_st_f, .005*(1.+(1.-zoom)));
-                    overlayGrid += cross(crosses_st_f, .00015, .015*(1.+(1.-zoom)) )*.75;
+                    overlayGrid *= 1.-rect(crosses_st_f, .003*(1.+(1.-zoom)));
+                    overlayGrid += cross(crosses_st_f, .00012, .012*(1.+(1.-zoom)) )*.75;
+                    // Check
+                    vec2 i_st = (u_tile_origin.xy);
+                    if (mod(i_st.y,2.) - mod(i_st.x,2.) == 0.) {
+                        overlayGrid += .1;
+                    }
                     
                     color.rgb = mix(color.rgb,vec3(light),overlayGrid);                    
     earth:
@@ -406,33 +311,18 @@ styles:
             diffuse: white
             specular: white
         animated: true
-        shaders: 
-            blocks: 
-                normal: |
-                    //normal += snoise(vec3(v_world_position.xy*0.001,u_time*.5))*0.02;
     spline:
         base: lines
         lighting: false
-    # buildings:
-    #     mix: sunlight
-    #     base: polygons
-    #     shaders:
-    #         blocks:
-    #             color: |
-    #                 color.rgb *= vec3(min((v_world_position.z*.001 + .5),1.));
     area:
         base: polygons
-        mix: [functions-map, zoom, satelite]
+        mix: [functions-map, zoom, satelite, geometry-matrices]
         blend: inlay
         shaders: 
             blocks: 
                 global: |
-                    mat2 rotate2d(float angle){
-                        return mat2(cos(angle),-sin(angle),
-                                    sin(angle),cos(angle));
-                    }
                     float stripes(vec2 st, float width){
-                        st = rotate2d(.72)*st;
+                        st = rotate2D(.72)*st;
                         st *= 92.;
                         return step(.5+width*0.5,abs(sin(st.y*3.14159265358)));
                     }
@@ -525,26 +415,89 @@ layers:
             draw:
                 spline:
                     order: function() { return 6 + feature.sort_key; }
-    # buildings:
-    #     data: { source: osm }
-    #     filter: { $zoom: { min: 10 } }
-    #     draw:
-    #         buildings:
-    #             order: 100
-    #             color: '#999'
-    #     extruded:
-    #         filter: { $zoom: { min: 10 } }
-    #         draw:
-    #             buildings:
-    #                 extrude: function () { return feature.height > 0 || $zoom >= 16; }
     places:
         data: { source: osm }
         filter: { name: true }
         draw:
             text:
+                visible: true
+                priority: 2
                 font:
-                    style: italic
-                    size: 16px
+                    size: 10px
                     family: Helvetica
                     fill: black
                     stroke: { color: white , width: 4 }
+        continent:
+            filter: { name: true, kind: [continent], $zoom: {max: 5} }
+            draw:
+                text:
+                    visible: true
+                    font:
+                        size: 16px
+                        weight: bold
+                        transform: uppercase
+        region:
+            filter: { name: true, kind: [state], $zoom: {min: 6, max: 9} }
+            draw:
+                text:
+                    priority: 2
+                    visible: true
+                    text_source: function() { if(feature["name:short"]) { return feature["name"]; } else { return "" } }
+                    font:
+                        size: 14px
+                        weight: 200
+                        fill: [0.3,0.3,0.3]
+                        transform: uppercase
+        populated-places:
+            draw:
+                text:
+                    offset: [0, 8px]
+
+            populated-places-natural-earth-z2-z3:
+                filter: { name: true, source: naturalearthdata.com, scalerank: 0 }
+                draw:
+                    text:
+                        priority: 1
+                        visible: true
+                        font:
+                            size: 14px
+        populated-places-osm:
+                filter: { name: true, source: openstreetmap, not: { kind: [country, county, state, island, neighbourhood, suburb, quarter] }, $zoom: {min: 8} }
+                draw:
+                    text:
+                        priority: 1
+                        interactive: true
+                        visible: true
+                        font:
+                            size: 13px
+                            # stroke: { color: *text_stroke, width: 4 }
+                # add townspots from zoom 0 thru zoom 11
+                townspots:
+                    filter: { $zoom: { max: 11 } }
+                # nix major cities under z15
+                major-places:
+                    filter: { kind: [city], $zoom: { min: 13, max: 15 } }
+                    visible: false
+                    draw:
+                        text:
+                            font:
+                                size: 14px
+                major-places:
+                    filter: { kind: [city], $zoom: { min: 15 } }
+                    visible: false
+                    draw:
+                        text:
+                            visible: false
+                            font:
+                                size: 14px
+                medium-places:
+                    filter: { kind: [town], $zoom: { max: 11 } }
+                    visible: false
+                # nix podunk burgs under z15
+                minor-places-village:
+                    filter: { kind: [village], $zoom: { max: 12 } }
+                    visible: false
+                # mobile home parks, really?
+                minor-places-hamlet:
+                    filter: { kind: [hamlet], $zoom: { max: 16 } }
+                    visible: false
