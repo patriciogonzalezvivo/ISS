@@ -316,71 +316,15 @@ styles:
                     }
                     // GridTile
                     //=============================
-                    vec3 TileGrid(float res){
+                    float TileGrid(float res){
                         vec2 st = getTileCoords()*100.*res;
-                        vec3 color = vec3(0.0);
+                        float pct = 0.0;
                         float press = 0.5+(1.0-fract(u_map_position.z))*0.1;
-                        color += vec3(0.620,0.722,0.694)*grid(st,0.02,press)*.5;
-                        color += vec3(0.620,0.722,0.694)*grid(st,0.01,press)*.25;
-                        color += 0.1*grid(st,0.1,press);
-                        return color*.5;
+                        pct += grid(st,0.02,press)*.5;
+                        pct += grid(st,0.01,press)*.25;
+                        return pct*.5;
                     }
-                    vec3 TileGrid(){ return mix(TileGrid(1.),TileGrid(2.),fract(u_map_position.z)); }
-    numeric-grid:
-        base: polygons
-        mix: grid
-        animated: true
-        shaders:
-            blocks:
-                global: |
-                    float bin(vec2 ipos, float n){
-                        float remain = mod(n,33554432.);
-                        for(float i = 0.0; i < 25.0; i++){
-                            if ( floor(i/3.) == ipos.y && mod(i,3.) == ipos.x ) {
-                                return step(1.0,mod(remain,2.));
-                            }
-                            remain = ceil(remain/2.);
-                        }
-                        return 0.0;
-                    }
-                    float char(vec2 st, float n){
-                        st.x = st.x*2.-0.5;
-                        st.y = st.y*1.2-0.1;
-                        vec2 grid = vec2(3.,5.);
-                        vec2 ipos = floor(st*grid);
-                        n = floor(mod(n,10.));
-                        float digit = 0.0;
-                        if (n < 1. ) { digit = 31600.; } 
-                        else if (n < 2. ) { digit = 9363.0; } 
-                        else if (n < 3. ) { digit = 31184.0; } 
-                        else if (n < 4. ) { digit = 31208.0; } 
-                        else if (n < 5. ) { digit = 23525.0; } 
-                        else if (n < 6. ) { digit = 29672.0; } 
-                        else if (n < 7. ) { digit = 29680.0; } 
-                        else if (n < 8. ) { digit = 31013.0; } 
-                        else if (n < 9. ) { digit = 31728.0; } 
-                        else if (n < 10. ) { digit = 31717.0; }
-                        float pct = bin(ipos, digit);
-                        vec2 borders = vec2(1.);
-                        // vec2 fpos = fract(st*grid);
-                        // borders *= step(0.01,fpos.x) * step(0.01,fpos.y);   // inner
-                        borders *= step(0.0,st)*step(0.0,1.-st);            // outer
-                        return step(.5,1.0-pct) * borders.x * borders.y;
-                    }
-                    float box(in vec2 st, in vec2 size){
-                        size = vec2(0.5) - size*0.5;
-                        vec2 uv = smoothstep(size,
-                                            size+vec2(0.001),
-                                            st);
-                        uv *= smoothstep(size,
-                                        size+vec2(0.001),
-                                        vec2(1.0)-st);
-                        return uv.x*uv.y;
-                    }
-                    float cross(in vec2 st, vec2 size){
-                        return  clamp(box(st, vec2(size.x*0.5,size.y*0.125)) +
-                                box(st, vec2(size.y*0.125,size.x*0.5)),0.,1.);
-                    }
+                    float TileGrid(){ return mix(TileGrid(1.),TileGrid(2.),fract(u_map_position.z)); }
     sunlight:
         base: polygons
         mix: [geometry-projection, geometry-matrices, functions-map]
@@ -437,7 +381,7 @@ styles:
                 filter: |
                     color = mix(color,multitexture(uv,light_accumulator_diffuse.r),SatOsmPct);       
     satelite:
-        mix: [shapes-cross,numeric-grid]
+        mix: [shapes-cross, grid]
         shaders:
             blocks:
                 filter: |
@@ -453,32 +397,16 @@ styles:
                     // GRID
                     vec2 st = getTileCoords();
                     float zoom = 0.0001+fract(u_map_position.z);
-                    vec3 overlayGrid = vec3(0.0);
+                    float overlayGrid = 0.0;
                     overlayGrid += TileGrid();
                     
                     // Crosses
                     vec2 crosses_st = st + .5;
                     vec2 crosses_st_f = fract(crosses_st);
-                    overlayGrid *= 1.-cross(crosses_st_f,vec2(.08)*(1.+(1.-zoom)));
-                    overlayGrid += vec3(1.000,.7,0.)*cross(crosses_st_f,vec2(.05)*(1.+(1.-zoom)));
+                    overlayGrid *= 1.-rect(crosses_st_f, .005*(1.+(1.-zoom)));
+                    overlayGrid += cross(crosses_st_f, .0002, .01*(1.+(1.-zoom)) );
                     
-                    // Digits
-                    vec2 digits_st = mod(st*(30.+30.*zoom),60.);
-                    vec2 digits_st_i = floor(digits_st);
-                    if (digits_st_i.y == 1. &&
-                        digits_st_i.x > 0. && digits_st_i.x < 7. ) {
-                        vec2 digits_st_f = fract(digits_st);
-                        float x = u_tile_origin.x;
-                        float pct = x/pow(10.,5.-digits_st_i.x);
-                        overlayGrid += vec3(char(digits_st_f,pct));
-                    } else if ( digits_st_i.y == 2. &&
-                                digits_st_i.x > 0. && digits_st_i.x < 8. ) {
-                        vec2 digits_st_f = fract(digits_st);
-                        float x = u_tile_origin.y;
-                        float pct = x/pow(10.,5.-digits_st_i.x);
-                        overlayGrid += vec3(char(digits_st_f,pct));
-                    }
-                    color.rgb = mix(color.rgb,vec3(light),overlayGrid*.4);                    
+                    color.rgb = mix(color.rgb,vec3(light),overlayGrid*.5);                    
     earth:
         mix: [textures, satelite]
         material: 
@@ -497,7 +425,7 @@ styles:
         shaders: 
             blocks: 
                 normal: |
-                    normal += snoise(vec3(v_world_position.xy*0.001,u_time*.5))*0.02;
+                    //normal += snoise(vec3(v_world_position.xy*0.001,u_time*.5))*0.02;
     spline:
         base: lines
         lighting: false
@@ -510,7 +438,7 @@ styles:
                     color.rgb *= vec3(min((v_world_position.z*.001 + .5),1.));
     area:
         base: polygons
-        mix: [functions-aastep, functions-map, zoom, satelite]
+        mix: [functions-map, zoom, satelite]
         blend: inlay
         shaders: 
             blocks: 
@@ -522,7 +450,7 @@ styles:
                     float stripes(vec2 st, float width){
                         st = rotate2d(.72)*st;
                         st *= 92.;
-                        return aastep(.5+width*0.5,abs(sin(st.y*3.14159265358)));
+                        return step(.5+width*0.5,abs(sin(st.y*3.14159265358)));
                     }
                 filter: |
                     color.a = stripes(st_center*2.,SatOsmPct*1.4)*.5;

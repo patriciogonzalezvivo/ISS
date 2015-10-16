@@ -165,12 +165,12 @@ function debounce(func, wait, immediate) {
 }
 
 function updateGeocode (lat, lng) {
-    const PELIAS_KEY = 'search--cv2Foc';
-    const PELIAS_HOST = 'search.mapzen.com';
-    const PELIAS_THROTTLE = 300;
-    const endpoint = `//${PELIAS_HOST}/v1/reverse?point.lat=${lat}&point.lon=${lng}&size=1&layers=coarse&api_key=${PELIAS_KEY}`;
+    var PELIAS_KEY = 'search--cv2Foc';
+    var PELIAS_HOST = 'search.mapzen.com';
 
-    debounce(httpGet(endpoint, function(err, res){
+    var endpoint = '//' + PELIAS_HOST + '/v1/reverse?point.lat=' + lat + '&point.lon=' + lng + '&size=1&layers=coarse&api_key=' + PELIAS_KEY;
+
+    httpGet(endpoint, function(err, res){
         if (err) {
             console.error(err);
         }
@@ -184,5 +184,5 @@ function updateGeocode (lat, lng) {
         else {
             place = response.features[0].properties.label;
         }
-    }), PELIAS_THROTTLE);
+    });
 }
