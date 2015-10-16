@@ -190,7 +190,7 @@ styles:
                     //=============================
                     float grid(in vec2 st, in float res, in float press){
                         st = fract(st*res);
-                        return 1.0-(step(press*res*.5,st.x) * step(press*res*.5,st.y));
+                        return 1.0-(step(press*res*.75,st.x) * step(press*res*.75,st.y));
                     }
                     float grid(in vec2 st, in float res){
                         return grid(st,res,0.005);
@@ -289,11 +289,6 @@ styles:
                     vec2 crosses_st_f = fract(crosses_st);
                     overlayGrid *= 1.-rect(crosses_st_f, .003*(1.+(1.-zoom)));
                     overlayGrid += cross(crosses_st_f, .00012, .012*(1.+(1.-zoom)) )*.75;
-                    // Check
-                    vec2 i_st = (u_tile_origin.xy);
-                    if (mod(i_st.y,2.) - mod(i_st.x,2.) == 0.) {
-                        overlayGrid += .1;
-                    }
                     
                     color.rgb = mix(color.rgb,vec3(light),overlayGrid);                    
     earth:
@@ -306,11 +301,15 @@ styles:
                 normal: |
                     normal = mix(normal,sphere*normalmap(uv)*3.,SatOsmPct);
     water:
-        mix: [textures, satelite, generative-noise]
+        mix: [textures, satelite]
         material:
             diffuse: white
             specular: white
         animated: true
+        shaders:
+            blocks: 
+                normal: |
+                    normal = mix(normal,sphere*normalmap(uv)*3.,SatOsmPct);
     spline:
         base: lines
         lighting: false
