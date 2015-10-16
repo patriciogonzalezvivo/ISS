@@ -278,7 +278,7 @@ styles:
                     light = abs((step(.5,light_accumulator_diffuse.r) * smoothstep(.0,1.,1.-SatOsmPct))-light);
                     
                     float target = 0.0;
-                    target += rect(st_center,.21)-rect(st_center,.2);
+                    target += (rect(st_center,.21)-rect(st_center,.2))*.3;
                     target *= 1.0-cross(st_center,.5,1.);
                     target += cross(st_center,.00002,.02);
                     color.rgb = mix(color.rgb,vec3(light),target);
