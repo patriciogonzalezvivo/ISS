@@ -24,10 +24,7 @@ map = (function () {
     // Tangram Layer
     var layer = Tangram.leafletLayer({
         scene: 'scene.yaml',
-        numWorkers: 2,
-        attribution: '<a href="https://mapzen.com/tangram" target="_blank">Tangram</a> | &copy; OSM contributors | <a href="https://mapzen.com/" target="_blank">Mapzen</a>',
-        unloadInvisibleTiles: false,
-        updateWhenIdle: false,
+        attribution: '<a href="https://mapzen.com/tangram" target="_blank">Tangram</a> | &copy; OSM contributors | <a href="https://mapzen.com/" target="_blank">Mapzen</a>'
     });
 
     window.layer = layer;
@@ -60,11 +57,8 @@ function init() {
     var satLat = state.lat;
 
     map.setView([satLat, satLon], zoom);
-    layer.addTo(map);
-
-    window.setInterval("update(getCurrentTime())", 1000);
-
-    window.setTimeout(function() {
+    // Scene initialized
+    layer.on('init', function() {
         console.log("Creating orbit and cheching on WebGL ")
         
         // If the browser don't suport big textures, reload scene using LowDefenition images
@@ -77,16 +71,21 @@ function init() {
                 var content = res.replace(/\-[x]*hd\.jpg/gm, "-ld.jpg");
                 var url = createObjectURL(new Blob([content]));
                 scene.load(url,false);
+                CreateOrbit();
             });
+        } else {
+            CreateOrbit();
         }
-    }, 1000);
+        
+        window.setInterval("update(getCurrentTime())", 1000);
 
-    CreateOrbit();
-    // if (window.DeviceMotionEvent) {
-    //     window.addEventListener("devicemotion", onMotionUpdate, false);
-    // }
-    document.addEventListener('mousemove', onMouseUpdate, false);
-    document.addEventListener('mouseenter', onMouseUpdate, false);
+        // if (window.DeviceMotionEvent) {
+        //     window.addEventListener("devicemotion", onMotionUpdate, false);
+        // }
+        document.addEventListener('mousemove', onMouseUpdate, false);
+        document.addEventListener('mouseenter', onMouseUpdate, false);
+    });
+    layer.addTo(map);
 }
 
 function CreateOrbit() {
@@ -117,7 +116,7 @@ function CreateOrbit() {
         var content = JSON.stringify(response);
 
         scene.config.sources.iss.url = createObjectURL(new Blob([content]));
-        scene.reload();
+        scene.rebuild();
     });
 }
 
