@@ -165,7 +165,6 @@ function update(time) {   // time in seconds since Jan. 01, 1970 UTC
 
 function typeLocation(text) {
     if (placeCounter > text.length || place === "") {
-        console.log("reset");
         placeCounter = 0;
         text = "";
         var state = getSatelliteState(getCurrentTime());
@@ -175,7 +174,6 @@ function typeLocation(text) {
         }, 3000);
     } else {
         setTimeout( function(){
-            console.log(text,place, placeCounter);
             document.getElementById('loc').innerHTML = text + "<span>|</span>"; 
             typeLocation(text+place.charAt(placeCounter++));
         }, 500);
