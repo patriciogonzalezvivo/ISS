@@ -36,11 +36,6 @@ body {
     animation: type 1s steps(60, end); 
 }
 
-/* Animation from http://codepen.io/samarkandiy/pen/nyLsx*/
-#loc p:nth-child(2){
-  animation: type2 1s steps(60, end);
-}
-
 #loc span{
   animation: blink 1s infinite;
 }

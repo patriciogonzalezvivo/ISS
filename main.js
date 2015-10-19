@@ -5,7 +5,7 @@ var isMiles = false;
 var MILE_IN_KM = 1.609344;
 var zoom = 6;
 var place = "";
-var bPlaceChange = true;
+var placeCounter = 0;
 var lastState = {};
 var createObjectURL = (window.URL && window.URL.createObjectURL) || (window.webkitURL && window.webkitURL.createObjectURL);
 var cloudOffset = [0,0];
@@ -86,6 +86,8 @@ function init() {
         document.addEventListener('mouseenter', onMouseUpdate, false);
     });
     layer.addTo(map);
+
+    typeLocation("");
 }
 
 function CreateOrbit() {
@@ -134,13 +136,7 @@ function update(time) {   // time in seconds since Jan. 01, 1970 UTC
         options.duration = 0.0;
     }
 
-    map.panTo([state.lat, state.lon],options);
-
-    updateGeocode(state.lat, state.lon);
-    if (bPlaceChange) {
-        document.getElementById('loc').innerHTML = place + "<span>|</span>";    
-    }
-    
+    map.panTo([state.lat, state.lon],options);    
     document.getElementById('left-lat').innerHTML = "LAT " + state.lat.toFixed(4);
     document.getElementById('left-lon').innerHTML = "LON " + state.lon.toFixed(4);
     
@@ -165,6 +161,25 @@ function update(time) {   // time in seconds since Jan. 01, 1970 UTC
     // scene.styles.buildings.shaders.uniforms.u_sun_offset = sunPos;
 
     lastState = state;
+}
+
+function typeLocation(text) {
+    if (placeCounter > text.length || place === "") {
+        console.log("reset");
+        placeCounter = 0;
+        text = "";
+        var state = getSatelliteState(getCurrentTime());
+        updateGeocode(state.lat, state.lon);
+        setTimeout(function(){
+            typeLocation("");
+        }, 1000);
+    } else {
+        setTimeout( function(){
+            console.log(text,place, placeCounter);
+            document.getElementById('loc').innerHTML = text + "<span>|</span>"; 
+            typeLocation(text+place.charAt(placeCounter++));
+        }, 100);
+    }
 }
 
 function getCurrentTime() {   // time in seconds since Jan. 01, 1970 UTC
@@ -232,20 +247,10 @@ function updateGeocode (lat, lng) {
         // TODO: Much more clever viewport/zoom based determination of current location
         var response = JSON.parse(res);
         if (!response.features || response.features.length === 0) {
-            if (place !== 'Unknown location') {
-                bPlaceChange = true;
-            } else {
-                bPlaceChange = false;
-            }
             // Sometimes reverse geocoding returns no results
             place = 'Unknown location';
         }
         else {
-            if (place !== response.features[0].properties.label) {
-                bPlaceChange = true;
-            } else {
-                bPlaceChange = false;
-            }
             place = response.features[0].properties.label;
         }
     });
