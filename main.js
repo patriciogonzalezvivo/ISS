@@ -65,6 +65,9 @@ function init() {
     window.setInterval("update(getCurrentTime())", 1000);
 
     setTimeout(function() {
+        console.log("Creating orbit and cheching on WebGL ")
+        
+
         // If the browser don't suport big textures, reload scene using LowDefenition images
         if ( scene.gl.getParameter(scene.gl.MAX_TEXTURE_SIZE) < 10800) {
             console.log("Warning, Browser don't suport big images, reloading style with smaller images");
@@ -77,15 +80,13 @@ function init() {
                 scene.load(url,false);
             });
         }
-
-        CreateOrbit();
     }, 1000);
 
-    
+    CreateOrbit();
 
-    if (window.DeviceMotionEvent) {
-        window.addEventListener("devicemotion", onMotionUpdate, false);
-    }
+    // if (window.DeviceMotionEvent) {
+    //     window.addEventListener("devicemotion", onMotionUpdate, false);
+    // }
     document.addEventListener('mousemove', onMouseUpdate, false);
     document.addEventListener('mouseenter', onMouseUpdate, false);
 }
@@ -107,7 +108,6 @@ function CreateOrbit() {
                 response.features[currentGeom].geometry.coordinates.push([orbit.orbitData[i].ln+360, orbit.orbitData[i].lt])
                 currentGeom = 1;
             }
-
             response.features[currentGeom].geometry.coordinates.push([orbit.orbitData[i].ln, orbit.orbitData[i].lt]);
             prevLon = orbit.orbitData[i].ln;
         }
@@ -118,7 +118,7 @@ function CreateOrbit() {
 
         var content = JSON.stringify(response);
         scene.config.sources.iss.url = createObjectURL(new Blob([content]));
-        scene.reload()
+        scene.reload();
     });
 }
 
@@ -261,11 +261,9 @@ function unhide(divID) {
 }
 
 function onMouseUpdate(e) {
-    var mouse = [ (e.pageX/screen.width-.5)*0.002, (e.pageY/screen.height-.5)*-0.002];
-    console.log("Mouse", mouse);
-
-    cloudOffset[0] += (mouse[0]-cloudOffset[0])*.5;
-    cloudOffset[1] += (mouse[1]-cloudOffset[1])*.5;
+    var mouse = [ (e.pageX/screen.width-.5)*0.005, (e.pageY/screen.height-.5)*-0.002];
+    cloudOffset[0] += (mouse[0]-cloudOffset[0])*.01;
+    cloudOffset[1] += (mouse[1]-cloudOffset[1])*.01;
     if (scene.styles) {
         scene.styles.earth.shaders.uniforms.u_clouds_offset = cloudOffset;
         scene.styles.water.shaders.uniforms.u_clouds_offset = cloudOffset;
@@ -277,8 +275,10 @@ function onMotionUpdate(e) {
     console.log("Motion",motion);
 
     if (scene.styles && motion[0] !== null && motion[1] !== null ) {
-        cloudOffset[0] += (motion[0]-cloudOffset[0])*.5;
-        cloudOffset[1] += (motion[1]-cloudOffset[1])*.5;
+        cloudOffset[0] = motion[0];
+        cloudOffset[1] = motion[1];
+        // cloudOffset[0] += (motion[0]-cloudOffset[0])*.5;
+        // cloudOffset[1] += (motion[1]-cloudOffset[1])*.5;
         scene.styles.earth.shaders.uniforms.u_clouds_offset = cloudOffset;
         scene.styles.water.shaders.uniforms.u_clouds_offset = cloudOffset;
     }

@@ -335,10 +335,6 @@ styles:
     spline:
         base: lines
         lighting: false
-    orbit-spline:
-        base: lines
-        texcoords: true
-        lighting: false
     area:
         base: polygons
         mix: [functions-map, zoom, satelite, geometry-matrices]
@@ -528,7 +524,7 @@ layers:
         data: { source: iss }
         filter: { kind: [orbit] }
         draw:
-            orbit-spline:
+            spline:
                 order: 100
                 color: [0.906,0.914,0.871]
                 width: 1.5px
