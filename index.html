@@ -12,7 +12,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>View of OSM from the ISS</title>
     <link rel="stylesheet" href="lib/leaflet/leaflet.css" />
-
+    <link href='https://fonts.googleapis.com/css?family=Jura:400,300,600,500&subset=latin,cyrillic-ext,greek,latin-ext,cyrillic' rel='stylesheet' type='text/css'>
     <link type='text/css' rel='stylesheet' href="css/style.css">
   </head>
 
@@ -20,10 +20,17 @@
     <div id="map"></div>
 
     <div id="info" style="position: absolute;" >
-        <p id="loc">over</p>
+        <p id="loc">over <span>|</span></p>
     </div>
 
-    <img id="icon" class="unhidden" src="imgs/video-gray.png" onclick="javascript:unhide('icon'); javascript:unhide('stream');"></img>
+    <div id="left-info" style="position: absolute;" >
+        <p> OSM-ISS </p>
+        <p id="left-lat">LAT</p>
+        <p id="left-lon">LON</p>
+        <p id="left-time"></p>
+    </div>
+
+    <img id="icon" class="unhidden" src="imgs/video.png" onclick="javascript:unhide('icon'); javascript:unhide('stream');"></img>
     <iframe id="stream" class="hidden" src="http://www.ustream.tv/embed/9408562?html5ui&amp;autoplay=true" allowfullscreen webkitallowfullscreen scrolling="no" frameborder="0"></iframe>
 
     <!-- 3rd party libraries -->

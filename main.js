@@ -5,7 +5,10 @@ var isMiles = false;
 var MILE_IN_KM = 1.609344;
 var zoom = 6;
 var place = "";
+var bPlaceChange = true;
 var lastState = {};
+var createObjectURL = (window.URL && window.URL.createObjectURL) || (window.webkitURL && window.webkitURL.createObjectURL);
+var mouse = [null,null]
 
 map = (function () {
     'use strict';
@@ -25,7 +28,6 @@ map = (function () {
         attribution: '<a href="https://mapzen.com/tangram" target="_blank">Tangram</a> | &copy; OSM contributors | <a href="https://mapzen.com/" target="_blank">Mapzen</a>',
         unloadInvisibleTiles: false,
         updateWhenIdle: false,
-
     });
 
     window.layer = layer;
@@ -61,6 +63,55 @@ function init() {
     layer.addTo(map);
 
     window.setInterval("update(getCurrentTime())", 1000);
+
+    setTimeout(function() {
+        // If the browser don't suport big textures, reload scene using LowDefenition images
+        if ( scene.gl.getParameter(scene.gl.MAX_TEXTURE_SIZE) < 10800) {
+            console.log("Warning, Browser don't suport big images, reloading style with smaller images");
+            httpGet("scene.yaml", function(err, res){
+                if (err) {
+                    console.error(err);
+                }
+                var content = res.replace(/\-[x]*hd\.jpg/gm, "-ld.jpg");
+                var url = createObjectURL(new Blob([content]));
+                scene.load(url,false);
+            });
+        }
+    }, 1000);
+
+    CreateOrbit();
+}
+
+function CreateOrbit() {
+    httpGet("data/iss.geojson", function(err, res){
+        if (err) {
+            console.error(err);
+        }
+
+        var response = JSON.parse(res);
+        response.features[0].geometry.coordinates = [];
+        response.features[1].geometry.coordinates = [];
+        // TODO:
+        //      - break line when goes from 180 to -180
+        var prevLon = orbit.orbitData[0].ln;
+        var currentGeom = 0;
+        for (var i = 0; i < orbit.orbitData.length; i++) {
+            if (prevLon > 0.0 && orbit.orbitData[i].ln < 0.0){
+                response.features[currentGeom].geometry.coordinates.push([180, orbit.orbitData[i].lt])
+                currentGeom = 1;
+            }
+            response.features[currentGeom].geometry.coordinates.push([orbit.orbitData[i].ln, orbit.orbitData[i].lt]);
+            prevLon = orbit.orbitData[i].ln;
+        }
+
+        if (response.features[1].geometry.coordinates.length === 0.0) {
+            response.features.length = 1;
+        }
+
+        var content = JSON.stringify(response);
+        scene.config.sources.iss.url = createObjectURL(new Blob([content]));
+        scene.reload()
+    });
 }
 
 Date.prototype.getJulian = function() {
@@ -70,18 +121,27 @@ Date.prototype.getJulian = function() {
 function update(time) {   // time in seconds since Jan. 01, 1970 UTC
     // Update position to the satelite
     var state = getSatelliteState(time);
-    var options = {animate:true, duration: 1., easeLinearity: 1};
+    var options = {animate: true, duration: 1., easeLinearity: 1};
 
     if (state.lon < -173) {
         options.animate = false;
+        options.duration = 0.0;
     }
+
     map.panTo([state.lat, state.lon],options);
 
     updateGeocode(state.lat, state.lon);
-    document.getElementById('loc').innerHTML = "Over " + place + " (" + state.lat.toFixed(4) + " , " + state.lon.toFixed(4) + " )";
-
+    if (bPlaceChange) {
+        document.getElementById('loc').innerHTML = place + "<span>|</span>";    
+    }
+    
+    document.getElementById('left-lat').innerHTML = "LAT " + state.lat.toFixed(4);
+    document.getElementById('left-lon').innerHTML = "LON " + state.lon.toFixed(4);
+    
     // Update Sun position
     var now = new Date();
+    document.getElementById('left-time').innerHTML = now.getTime().toString();
+
     var cur_hour = now.getHours();
     var cur_min = now.getMinutes();
     var cur_sec = now.getSeconds();
@@ -152,26 +212,6 @@ function httpGet (url, callback) {
     request.send();
 }
 
-function debounce(func, wait, immediate) {
-    var timeout;
-    return function() {
-        var context = this,
-            args = arguments;
-        var later = function() {
-            timeout = null;
-            if (!immediate) {
-                func.apply(context, args);
-            }
-        };
-        var callNow = immediate && !timeout;
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-        if (callNow) {
-            func.apply(context, args);
-        }
-    };
-}
-
 function updateGeocode (lat, lng) {
     var PELIAS_KEY = 'search--cv2Foc';
     var PELIAS_HOST = 'search.mapzen.com';
@@ -186,10 +226,20 @@ function updateGeocode (lat, lng) {
         // TODO: Much more clever viewport/zoom based determination of current location
         var response = JSON.parse(res);
         if (!response.features || response.features.length === 0) {
+            if (place !== 'Unknown location') {
+                bPlaceChange = true;
+            } else {
+                bPlaceChange = false;
+            }
             // Sometimes reverse geocoding returns no results
             place = 'Unknown location';
         }
         else {
+            if (place !== response.features[0].properties.label) {
+                bPlaceChange = true;
+            } else {
+                bPlaceChange = false;
+            }
             place = response.features[0].properties.label;
         }
     });
@@ -200,4 +250,20 @@ function unhide(divID) {
     if (item) {
         item.className=(item.className=='hidden')?'unhidden':'hidden';
     }
+}
+
+document.addEventListener('mousemove', onMouseUpdate, false);
+document.addEventListener('mouseenter', onMouseUpdate, false);
+
+function onMouseUpdate(e) {
+    x = e.pageX;
+    y = e.pageY;
+}
+
+function getMouseX() {
+    return x;
+}
+
+function getMouseY() {
+    return y;
 }

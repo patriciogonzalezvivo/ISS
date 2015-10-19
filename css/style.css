@@ -1,5 +1,5 @@
 body {
-    font-family: Helvetica, Arial;
+    font-family: 'Orbitron', Helvetica, Arial;
     margin: 0px;
     border: 0px;
     padding: 0px;
@@ -18,6 +18,7 @@ body {
 }
 
 #info {
+    font-family: 'Jura', Helvetica, Arial, sans-serif;
     bottom: 10px; 
     width: 100%;
     text-align: center;
@@ -29,7 +30,53 @@ body {
 #loc {
     background-color: rgba(0,0,0,0.5);
     display: table;
+    font-size: 18px;
     margin: 0px auto 0px auto;
+
+    animation: type 1s steps(60, end); 
+}
+
+/* Animation from http://codepen.io/samarkandiy/pen/nyLsx*/
+#loc p:nth-child(2){
+  animation: type2 1s steps(60, end);
+}
+
+#loc span{
+  animation: blink 1s infinite;
+}
+
+@keyframes type{ 
+  from { width: 0; } 
+} 
+
+@keyframes type2{
+  0%{width: 0;}
+  50%{width: 0;}
+  100%{ width: 100; } 
+} 
+
+@keyframes blink{
+  to{opacity: .0;}
+}
+
+#left-info {
+    font-family: 'Jura', Helvetica, Arial, sans-serif;
+    top: 500px; 
+    left: -480px;
+    -ms-transform: rotate(90deg);
+    -webkit-transform: rotate(90deg);
+    transform: rotate(90deg);
+    pointer-event: none;
+    color: white;
+    text-outline: 2px 2px black;
+    width: 1000px;
+    font-size: 14px;
+}
+
+#left-info p {
+    display: inline-block;
+    margin-left: 80px ;
+    background-color: rgba(0,0,0,0.1);
 }
 
 #stream {

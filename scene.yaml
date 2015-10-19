@@ -4,6 +4,9 @@ sources:
     osm:
         type: TopoJSON
         url:  //vector.mapzen.com/osm/all/{z}/{x}/{y}.topojson?api_key=vector-tiles-DFFH1UM
+    iss:
+        type: GeoJSON
+        url: data/iss.geojson
 cameras:
     perspective:
         type: flat
@@ -190,7 +193,7 @@ styles:
                     //=============================
                     float grid(in vec2 st, in float res, in float press){
                         st = fract(st*res);
-                        return 1.0-(step(press*res*.75,st.x) * step(press*res*.75,st.y));
+                        return 1.0-(step(press*res*.7,st.x) * step(press*res*.7,st.y));
                     }
                     float grid(in vec2 st, in float res){
                         return grid(st,res,0.005);
@@ -242,9 +245,10 @@ styles:
         shaders:
             uniforms:
                 u_normal_map: imgs/earth-normals-hd.jpg
-                u_cloud_map: imgs/earth-clouds-hd.jpg
                 u_day_map: imgs/earth-texture-day-xhd.jpg
                 u_night_map: imgs/earth-texture-night-xhd.jpg
+                u_cloud_map: imgs/earth-clouds-hd.jpg
+                u_clouds_offset: [0,0]
             blocks:
                 global: |
                     vec3 normalmap (vec2 st) {
@@ -256,9 +260,7 @@ styles:
                         color = mix(texture2D(u_night_map,fract(st)), 
                                     texture2D(u_day_map,fract(st)),
                                     clamp(lightF,0.,1.));
-                        //return color;
-
-                        float clouds = texture2D(u_cloud_map,fract(st+vec2(u_time,0)*.0001 ) ).r;
+                        float clouds = texture2D(u_cloud_map,fract(st+u_clouds_offset)).r;
                         clouds *= lightF*2.-1.;
                         return color+clouds*zoomF;
                     }
@@ -269,6 +271,9 @@ styles:
         shaders:
             blocks:
                 filter: |
+                    // VARIABLES
+                    //===============================
+                    color = clamp(color,0.0,1.0);
                     vec2 st_center = gl_FragCoord.xy/u_resolution.xy;
                     float aspect = u_resolution.x/u_resolution.y;
                     st_center -= .5;
@@ -276,26 +281,38 @@ styles:
                     st_center += .5;
                     float light = 1.;
                     light = abs((step(.5,light_accumulator_diffuse.r) * smoothstep(.0,1.,1.-SatOsmPct))-light);
-                    
+                    //
+                    // TARGET AREA
+                    //===============================
                     float target = 0.0;
-                    target += (rect(st_center,.21)-rect(st_center,.2))*.3;
-                    target *= 1.0-cross(st_center,.5,1.);
-                    target += cross(st_center,.00002,.02);
+                    // RECT
+                    //target += (rect(st_center,.21)-rect(st_center,.2))*.3;
+                    //target *= 1.0-cross(st_center,.5,1.);
+                    // CROSS
+                    target += cross(st_center,.00008,.02);
                     color.rgb = mix(color.rgb,vec3(light),target);
-                    
+                    //
+                    // GRID ON TILES
+                    //===============================
                     // GRID
                     vec2 st = getTileCoords();
                     float zoom = 0.0001+fract(u_map_position.z);
                     float overlayGrid = 0.0;
                     overlayGrid += TileGrid()*.5;
-                    
-                    // Crosses
+                    // CROSSES
                     vec2 crosses_st = st + .5;
                     vec2 crosses_st_f = fract(crosses_st);
                     overlayGrid *= 1.-rect(crosses_st_f, .003*(1.+(1.-zoom)));
-                    overlayGrid += cross(crosses_st_f, .00012, .012*(1.+(1.-zoom)) )*.75;
-                    
-                    color.rgb = mix(color.rgb,vec3(light),overlayGrid);                    
+                    overlayGrid += cross(crosses_st_f, .0001, .012*(1.+(1.-zoom)) )*.75;
+                    //
+                    // APPLY 
+                    //===============================
+                    color.rgb = mix(color.rgb,vec3(light),clamp(overlayGrid,0.,1.)); 
+                    //
+                    // FILTER
+                    //===============================
+                    //vec2 st_i = floor(st_center*(max(u_resolution.x,u_resolution.y))*.1 );
+                    //color += step(0.5,abs(mod(st_i.x,2.)-mod(st_i.y+1.,2.)))*0.1;                   
     earth:
         mix: [textures, satelite]
         material: 
@@ -317,6 +334,10 @@ styles:
                     normal = mix(normal,sphere*normalmap(uv)*3.,SatOsmPct);
     spline:
         base: lines
+        lighting: false
+    orbit-spline:
+        base: lines
+        texcoords: true
         lighting: false
     area:
         base: polygons
@@ -427,17 +448,17 @@ layers:
                 visible: true
                 priority: 2
                 font:
-                    size: 10px
-                    family: Helvetica
+                    size: 14px
+                    family: ['Jura', Helvetica]
                     fill: black
-                    stroke: { color: white , width: 4 }
+                    stroke: { color: white , width: 3.5 }
         continent:
             filter: { name: true, kind: [continent], $zoom: {max: 5} }
             draw:
                 text:
                     visible: true
                     font:
-                        size: 16px
+                        size: 18px
                         weight: bold
                         transform: uppercase
         region:
@@ -448,8 +469,7 @@ layers:
                     visible: true
                     text_source: function() { if(feature["name:short"]) { return feature["name"]; } else { return "" } }
                     font:
-                        size: 14px
-                        weight: 200
+                        size: 16px
                         fill: [0.3,0.3,0.3]
                         transform: uppercase
         populated-places:
@@ -464,7 +484,7 @@ layers:
                         priority: 1
                         visible: true
                         font:
-                            size: 14px
+                            size: 18px
         populated-places-osm:
                 filter: { name: true, source: openstreetmap, not: { kind: [country, county, state, island, neighbourhood, suburb, quarter] }, $zoom: {min: 8} }
                 draw:
@@ -473,8 +493,7 @@ layers:
                         interactive: true
                         visible: true
                         font:
-                            size: 13px
-                            # stroke: { color: *text_stroke, width: 4 }
+                            size: 16px
                 # add townspots from zoom 0 thru zoom 11
                 townspots:
                     filter: { $zoom: { max: 11 } }
@@ -485,7 +504,7 @@ layers:
                     draw:
                         text:
                             font:
-                                size: 14px
+                                size: 16px
                 major-places:
                     filter: { kind: [city], $zoom: { min: 15 } }
                     visible: false
@@ -505,3 +524,11 @@ layers:
                 minor-places-hamlet:
                     filter: { kind: [hamlet], $zoom: { max: 16 } }
                     visible: false
+    features:
+        data: { source: iss }
+        filter: { kind: [orbit] }
+        draw:
+            orbit-spline:
+                order: 100
+                color: [0.906,0.914,0.871]
+                width: 1.5px
