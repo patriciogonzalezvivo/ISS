@@ -64,10 +64,9 @@ function init() {
 
     window.setInterval("update(getCurrentTime())", 1000);
 
-    setTimeout(function() {
+    window.setTimeout(function() {
         console.log("Creating orbit and cheching on WebGL ")
         
-
         // If the browser don't suport big textures, reload scene using LowDefenition images
         if ( scene.gl.getParameter(scene.gl.MAX_TEXTURE_SIZE) < 10800) {
             console.log("Warning, Browser don't suport big images, reloading style with smaller images");
@@ -83,7 +82,6 @@ function init() {
     }, 1000);
 
     CreateOrbit();
-
     // if (window.DeviceMotionEvent) {
     //     window.addEventListener("devicemotion", onMotionUpdate, false);
     // }
@@ -117,6 +115,7 @@ function CreateOrbit() {
         }
 
         var content = JSON.stringify(response);
+
         scene.config.sources.iss.url = createObjectURL(new Blob([content]));
         scene.reload();
     });
