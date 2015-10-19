@@ -77,9 +77,11 @@ function init() {
                 scene.load(url,false);
             });
         }
+
+        CreateOrbit();
     }, 1000);
 
-    CreateOrbit();
+    
 
     if (window.DeviceMotionEvent) {
         window.addEventListener("devicemotion", onMotionUpdate, false);
