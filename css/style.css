@@ -38,6 +38,7 @@ body {
 
 #loc span{
   animation: blink 1s infinite;
+  font-size: 28px;
 }
 
 @keyframes type{ 

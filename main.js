@@ -172,13 +172,13 @@ function typeLocation(text) {
         updateGeocode(state.lat, state.lon);
         setTimeout(function(){
             typeLocation("");
-        }, 1000);
+        }, 3000);
     } else {
         setTimeout( function(){
             console.log(text,place, placeCounter);
             document.getElementById('loc').innerHTML = text + "<span>|</span>"; 
             typeLocation(text+place.charAt(placeCounter++));
-        }, 100);
+        }, 500);
     }
 }
 
