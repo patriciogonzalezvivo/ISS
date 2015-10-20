@@ -20,7 +20,7 @@
     <div id="map"></div>
 
     <div id="info" style="position: absolute;" >
-        <p id="loc">over <span>|</span></p>
+        <p id="loc"><span>|</span></p>
     </div>
 
     <div id="left-info" style="position: absolute;" >
@@ -30,8 +30,10 @@
         <p id="left-time"></p>
     </div>
 
-    <img id="icon" class="unhidden" src="imgs/video.png" onclick="javascript:unhide('icon'); javascript:unhide('stream');"></img>
-    <iframe id="stream" class="hidden" width="480" height="270" src="http://www.ustream.tv/embed/9408562?html5ui&amp;autoplay=true" allowfullscreen webkitallowfullscreen scrolling="no" frameborder="0"></iframe>
+    <img id="icon" class="unhidden" src="imgs/video.png" onclick="javascript:unhide('stream');"></img>
+    <div id="stream" class="hidden">
+        <iframe  width="480" height="270" src="http://www.ustream.tv/embed/9408562?html5ui&amp;autoplay=true" allowfullscreen webkitallowfullscreen scrolling="no" frameborder="0"></iframe>
+    </div>
 
     <!-- 3rd party libraries -->
     <script src="lib/leaflet/leaflet.js"></script>

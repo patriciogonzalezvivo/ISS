@@ -7,7 +7,6 @@ var timeDiff = 0;
 var lastDayNightOverlayUpdate = 0;
 var isMiles = false;
 var MILE_IN_KM = 1.609344;
-var zoom = 6;
 var place = "";
 var placeCounter = 0;
 var lastState = {};
@@ -29,15 +28,14 @@ map = (function () {
     // Tangram Layer
     var layer = Tangram.leafletLayer({
         scene: 'scene.yaml',
-        attribution: '<a href="https://mapzen.com/tangram" target="_blank">Tangram</a> | &copy; OSM contributors | <a href="https://mapzen.com/" target="_blank">Mapzen</a>'
+        attribution: '<a href="https://twitter.com/patriciogv" target="_blank">@patriciogv</a> | <a href="https://mapzen.com/tangram" target="_blank">Tangram</a> | &copy; OSM contributors | <a href="https://mapzen.com/" target="_blank">Mapzen</a>'
     });
 
     window.layer = layer;
     var scene = layer.scene;
     window.scene = scene;
 
-    // setView expects format ([lat, long], zoom)
-    map.setView([0, 0], 5);
+    map.setView([0, 0], 4);
 
     var hash = new L.Hash(map);
 
@@ -61,7 +59,7 @@ function init() {
     var satLon = state.lon;
     var satLat = state.lat;
 
-    map.setView([satLat, satLon], zoom);
+    map.setView([satLat, satLon], 5);
     // Scene initialized
     layer.on('init', function() {
         console.log("Creating orbit and cheching on WebGL ")
@@ -80,9 +78,9 @@ function init() {
         
         window.setInterval("update(getCurrentTime())", 1000);
 
-        // if (window.DeviceMotionEvent) {
-        //     window.addEventListener("devicemotion", onMotionUpdate, false);
-        // }
+        if (window.DeviceMotionEvent) {
+            window.addEventListener("devicemotion", onMotionUpdate, false);
+        }
         document.addEventListener('mousemove', onMouseUpdate, false);
         document.addEventListener('mouseenter', onMouseUpdate, false);
     });
@@ -178,7 +176,7 @@ function updateLocation(text) {
         setTimeout( function(){
             document.getElementById('loc').innerHTML = text + "<span>|</span>"; 
             updateLocation(text+place.charAt(placeCounter++));
-        }, 500);
+        }, 100);
     }
 }
 
@@ -292,14 +290,13 @@ function onMouseUpdate (e) {
 }
 
 function onMotionUpdate (e) {
-    var motion = [event.accelerationIncludingGravity.x, event.accelerationIncludingGravity.y];
-    console.log("Motion",motion);
+    var accX = Math.round(event.accelerationIncludingGravity.x*10)/10;  
+    var accY = Math.round(event.accelerationIncludingGravity.y*10)/10;  
+    var motion = [ -accX,-accY ];
 
-    if (scene.styles && motion[0] !== null && motion[1] !== null ) {
-        cloudOffset[0] = motion[0];
-        cloudOffset[1] = motion[1];
-        // cloudOffset[0] += (motion[0]-cloudOffset[0])*.5;
-        // cloudOffset[1] += (motion[1]-cloudOffset[1])*.5;
+    if (scene.styles && motion[0] && motion[1] ) {
+        cloudOffset[0] += (motion[0]/1000-cloudOffset[0])*.5;
+        cloudOffset[1] += (motion[1]/1000-cloudOffset[1])*.5;
         scene.styles.earth.shaders.uniforms.u_clouds_offset = cloudOffset;
         scene.styles.water.shaders.uniforms.u_clouds_offset = cloudOffset;
     }
