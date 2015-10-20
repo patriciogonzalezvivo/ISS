@@ -1,3 +1,7 @@
+// Author: @patriciogv 2015
+
+// ============================================= VARIABLES
+//
 var track = orbit.orbitData;
 var timeDiff = 0;
 var lastDayNightOverlayUpdate = 0;
@@ -10,6 +14,7 @@ var lastState = {};
 var createObjectURL = (window.URL && window.URL.createObjectURL) || (window.webkitURL && window.webkitURL.createObjectURL);
 var cloudOffset = [0,0];
 
+// ============================================= INIT 
 map = (function () {
     'use strict';
 
@@ -17,7 +22,7 @@ map = (function () {
     var map = L.map('map',{
                             scrollWheelZoom: 'center', 
                             dragging: false,
-                            // minZoom: 4,
+                            minZoom: 4,
                             maxZoom: 12,
                             zoomControl: false 
                         });
@@ -32,7 +37,7 @@ map = (function () {
     window.scene = scene;
 
     // setView expects format ([lat, long], zoom)
-    map.setView([0, 0], 6);
+    map.setView([0, 0], 5);
 
     var hash = new L.Hash(map);
 
@@ -64,17 +69,13 @@ function init() {
         // If the browser don't suport big textures, reload scene using LowDefenition images
         if ( scene.gl.getParameter(scene.gl.MAX_TEXTURE_SIZE) < 10800) {
             console.log("Warning, Browser don't suport big images, reloading style with smaller images");
-            httpGet("scene.yaml", function(err, res){
-                if (err) {
-                    console.error(err);
-                }
-                var content = res.replace(/\-[x]*hd\.jpg/gm, "-ld.jpg");
-                var url = createObjectURL(new Blob([content]));
-                scene.load(url,false);
-                CreateOrbit();
-            });
+            setDefinition("ld");
         } else {
-            CreateOrbit();
+            if (window.devicePixelRatio === 1) {
+                setDefinition("hd");
+            } else {
+                initOrbit();
+            }
         }
         
         window.setInterval("update(getCurrentTime())", 1000);
@@ -87,11 +88,11 @@ function init() {
     });
     layer.addTo(map);
 
-    typeLocation("");
+    updateLocation("");
 }
 
-function CreateOrbit() {
-    httpGet("data/iss.geojson", function(err, res){
+function initOrbit() {
+    getHttp("data/iss.geojson", function(err, res){
         if (err) {
             console.error(err);
         }
@@ -121,6 +122,8 @@ function CreateOrbit() {
         scene.rebuild();
     });
 }
+
+// ============================================= UPDATE
 
 Date.prototype.getJulian = function() {
     return Math.floor((this / 86400000) - (this.getTimezoneOffset()/1440) + 2440587.5);
@@ -158,26 +161,63 @@ function update(time) {   // time in seconds since Jan. 01, 1970 UTC
     var sunPos = [offset_x, offset_y]; 
     scene.styles.earth.shaders.uniforms.u_sun_offset = sunPos;
     scene.styles.water.shaders.uniforms.u_sun_offset = sunPos;
-    // scene.styles.buildings.shaders.uniforms.u_sun_offset = sunPos;
 
     lastState = state;
 }
 
-function typeLocation(text) {
+function updateLocation(text) {
     if (placeCounter > text.length || place === "") {
         placeCounter = 0;
         text = "";
         var state = getSatelliteState(getCurrentTime());
         updateGeocode(state.lat, state.lon);
         setTimeout(function(){
-            typeLocation("");
+            updateLocation("");
         }, 3000);
     } else {
         setTimeout( function(){
             document.getElementById('loc').innerHTML = text + "<span>|</span>"; 
-            typeLocation(text+place.charAt(placeCounter++));
+            updateLocation(text+place.charAt(placeCounter++));
         }, 500);
     }
+}
+
+function updateGeocode (lat, lng) {
+    var PELIAS_KEY = 'search--cv2Foc';
+    var PELIAS_HOST = 'search.mapzen.com';
+
+    var endpoint = '//' + PELIAS_HOST + '/v1/reverse?point.lat=' + lat + '&point.lon=' + lng + '&size=1&layers=coarse&api_key=' + PELIAS_KEY;
+
+    getHttp(endpoint, function(err, res){
+        if (err) {
+            console.error(err);
+        }
+
+        // TODO: Much more clever viewport/zoom based determination of current location
+        var response = JSON.parse(res);
+        if (!response.features || response.features.length === 0) {
+            // Sometimes reverse geocoding returns no results
+            place = 'Unknown location';
+        }
+        else {
+            place = response.features[0].properties.label;
+        }
+    });
+}
+
+// ============================================= SET/GET
+// defString could be: "ld" or "hd"
+//
+function setDefinition (defString) {
+    getHttp("scene.yaml", function(err, res){
+        if (err) {
+            console.error(err);
+        }
+        var content = res.replace(/\-[x]*hd\.jpg/gm, "-"+defString+".jpg");
+        var url = createObjectURL(new Blob([content]));
+        scene.load(url,false);
+        initOrbit();
+    });
 }
 
 function getCurrentTime() {   // time in seconds since Jan. 01, 1970 UTC
@@ -214,7 +254,7 @@ function getIndex(time) {   // time in seconds since Jan. 01, 1970 UTC
     return i - 1;
 }
 
-function httpGet (url, callback) {
+function getHttp (url, callback) {
     var request = new XMLHttpRequest();
     var method = 'GET';
 
@@ -231,29 +271,7 @@ function httpGet (url, callback) {
     request.send();
 }
 
-function updateGeocode (lat, lng) {
-    var PELIAS_KEY = 'search--cv2Foc';
-    var PELIAS_HOST = 'search.mapzen.com';
-
-    var endpoint = '//' + PELIAS_HOST + '/v1/reverse?point.lat=' + lat + '&point.lon=' + lng + '&size=1&layers=coarse&api_key=' + PELIAS_KEY;
-
-    httpGet(endpoint, function(err, res){
-        if (err) {
-            console.error(err);
-        }
-
-        // TODO: Much more clever viewport/zoom based determination of current location
-        var response = JSON.parse(res);
-        if (!response.features || response.features.length === 0) {
-            // Sometimes reverse geocoding returns no results
-            place = 'Unknown location';
-        }
-        else {
-            place = response.features[0].properties.label;
-        }
-    });
-}
-
+// ============================================= TOOLS
 function unhide(divID) {
     var item = document.getElementById(divID);
     if (item) {
@@ -261,17 +279,19 @@ function unhide(divID) {
     }
 }
 
-function onMouseUpdate(e) {
+// ============================================= EVENTS
+
+function onMouseUpdate (e) {
     var mouse = [ (e.pageX/screen.width-.5)*0.005, (e.pageY/screen.height-.5)*-0.002];
-    cloudOffset[0] += (mouse[0]-cloudOffset[0])*.01;
-    cloudOffset[1] += (mouse[1]-cloudOffset[1])*.01;
+    cloudOffset[0] += (mouse[0]-cloudOffset[0])*.1;
+    cloudOffset[1] += (mouse[1]-cloudOffset[1])*.1;
     if (scene.styles) {
         scene.styles.earth.shaders.uniforms.u_clouds_offset = cloudOffset;
         scene.styles.water.shaders.uniforms.u_clouds_offset = cloudOffset;
     }
 }
 
-function onMotionUpdate(e) {
+function onMotionUpdate (e) {
     var motion = [event.accelerationIncludingGravity.x, event.accelerationIncludingGravity.y];
     console.log("Motion",motion);
 

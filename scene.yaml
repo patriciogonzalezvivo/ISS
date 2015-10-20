@@ -374,12 +374,12 @@ layers:
                 color: gray
     roads:
         data: { source: osm, layer: roads }
-        filter: { not: { highway: service, kind: rail } }
+        filter: { $zoom: {min: 7}, not: { highway: service, kind: rail } }
         draw:
             spline:
                 order: 7
                 color: white
-                width: [[1,0px],[6,.25px], [10, .5px], [15, .75px], [17, 5m]]
+                width: [[6,0px], [7,.25px], [10, .5px], [15, .75px], [17, 5m]]
         highway:
             filter: { kind: highway }
             draw:
@@ -522,9 +522,9 @@ layers:
                     visible: false
     features:
         data: { source: iss }
-        filter: { kind: [orbit] }
+        filter: { kind: [orbit], $zoom: { min: 0, max: 9 } }
         draw:
             spline:
                 order: 100
-                color: [0.906,0.914,0.871]
-                width: 1.5px
+                color: [[1,[0.906,0.914,0.0]],[9,[0.914,0.914,0.914]]]
+                width: [[1, 2px], [7, 1.5px], [8, 0.5px], [9, 0px] ]
