@@ -181,10 +181,12 @@ function updateLocation(text) {
 }
 
 function updateGeocode (lat, lng) {
-    var PELIAS_KEY = 'search--cv2Foc';
-    var PELIAS_HOST = 'search.mapzen.com';
 
-    var endpoint = '//' + PELIAS_HOST + '/v1/reverse?point.lat=' + lat + '&point.lon=' + lng + '&size=1&layers=coarse&api_key=' + PELIAS_KEY;
+    // This is my API Key for this project. 
+    // They are free! get one at https://mapzen.com/developers/sign_in
+    var PELIAS_KEY = 'search--cv2Foc';
+
+    var endpoint = '//search.mapzen.com/v1/reverse?point.lat=' + lat + '&point.lon=' + lng + '&size=1&layers=coarse&api_key=' + PELIAS_KEY;
 
     getHttp(endpoint, function(err, res){
         if (err) {
@@ -281,8 +283,8 @@ function unhide(divID) {
 
 function onMouseUpdate (e) {
     var mouse = [ (e.pageX/screen.width-.5)*0.005, (e.pageY/screen.height-.5)*-0.002];
-    cloudOffset[0] += (mouse[0]-cloudOffset[0])*.1;
-    cloudOffset[1] += (mouse[1]-cloudOffset[1])*.1;
+    cloudOffset[0] += (mouse[0]-cloudOffset[0])*.05;
+    cloudOffset[1] += (mouse[1]-cloudOffset[1])*.05;
     if (scene.styles) {
         scene.styles.earth.shaders.uniforms.u_clouds_offset = cloudOffset;
         scene.styles.water.shaders.uniforms.u_clouds_offset = cloudOffset;

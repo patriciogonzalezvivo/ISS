@@ -3,6 +3,8 @@
 sources:
     osm:
         type: TopoJSON
+        # This is my API Key for this project
+        # They are free! get one at https://mapzen.com/developers/sign_in
         url:  //vector.mapzen.com/osm/all/{z}/{x}/{y}.topojson?api_key=vector-tiles-DFFH1UM
     iss:
         type: GeoJSON
