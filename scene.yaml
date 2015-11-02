@@ -527,6 +527,6 @@ layers:
         filter: { kind: [orbit], $zoom: { min: 0, max: 9 } }
         draw:
             spline:
-                order: 100
+                order: 10
                 color: [[1,[0.906,0.914,0.0]],[9,[0.914,0.914,0.914]]]
                 width: [[1, 2px], [7, 1.5px], [8, 0.5px], [9, 0px] ]

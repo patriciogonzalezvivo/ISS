@@ -2,7 +2,8 @@
 
 // ============================================= VARIABLES
 //
-var track = orbit.orbitData;
+// var track = orbit.orbitData;
+var track = [];
 var timeDiff = 0;
 var lastDayNightOverlayUpdate = 0;
 var isMiles = false;
@@ -13,7 +14,14 @@ var lastState = {};
 var createObjectURL = (window.URL && window.URL.createObjectURL) || (window.webkitURL && window.webkitURL.createObjectURL);
 var cloudOffset = [0,0];
 
+// ISS TLL lines
+var tleLine1 = '1 25544U 98067A   15305.48861694  .00009749  00000-0  15091-3 0  9998',
+    tleLine2 = '2 25544  51.6435 118.8193 0006784  99.4264 289.9384 15.54738918969408';
+
+var satrec = satellite.twoline2satrec(tleLine1, tleLine2);
+
 // ============================================= INIT 
+// Prepair leafleat and tangram
 map = (function () {
     'use strict';
 
@@ -48,13 +56,15 @@ map = (function () {
 }());
 
 function init() {
-    var serverTime = orbit.tRef;
-    var clientTime = Math.round(new Date().getTime()/1000);
-    timeDiff = clientTime - serverTime;
+    var t = new Date();
+    t.setMinutes ( t.getMinutes() - 2 );
+    var stepSec = 60;
+    for (var i = 0; i < 98; i++) {
+        track.push(getSatellitePositionAt(satrec,t));
+        t.setSeconds(t.getSeconds() + stepSec); 
+    }
 
-    var currTime = serverTime;
-
-    var state = getSatelliteState(currTime);
+    var state = getSatelliteState( getCurrentTime() );
     var time   = state.time;
     var satLon = state.lon;
     var satLat = state.lat;
@@ -99,15 +109,15 @@ function initOrbit() {
         response.features[0].geometry.coordinates = [];
         response.features[1].geometry.coordinates = [];
 
-        var prevLon = orbit.orbitData[0].ln;
+        var prevLon = track[0].ln;
         var currentGeom = 0;
-        for (var i = 0; i < orbit.orbitData.length; i++) {
-            if (prevLon > 0.0 && orbit.orbitData[i].ln < 0.0){
-                response.features[currentGeom].geometry.coordinates.push([orbit.orbitData[i].ln+360, orbit.orbitData[i].lt])
+        for (var i = 0; i < track.length; i++) {
+            if (prevLon > 0.0 && track[i].ln < 0.0){
+                response.features[currentGeom].geometry.coordinates.push([track[i].ln+360, track[i].lt])
                 currentGeom = 1;
             }
-            response.features[currentGeom].geometry.coordinates.push([orbit.orbitData[i].ln, orbit.orbitData[i].lt]);
-            prevLon = orbit.orbitData[i].ln;
+            response.features[currentGeom].geometry.coordinates.push([track[i].ln, track[i].lt]);
+            prevLon = track[i].ln;
         }
 
         if (response.features[1].geometry.coordinates.length === 0.0) {
@@ -221,12 +231,13 @@ function setDefinition (defString) {
 }
 
 function getCurrentTime() {   // time in seconds since Jan. 01, 1970 UTC
-  return Math.round(new Date().getTime()/1000) - timeDiff;
+  return Math.round(new Date().getTime()/1000);
 }
 
 function getSatelliteState(time) {   // time in seconds since Jan. 01, 1970 UTC
     if ( (time < track[0].t) || (time > track[track.length-1].t) ) {
-        window.location.reload(true);
+        console.log("Time out of limits", time, track[0].t, "-", track[track.length-1].t)
+        // window.location.reload(true);
         return null;
     }
 
@@ -237,12 +248,14 @@ function getSatelliteState(time) {   // time in seconds since Jan. 01, 1970 UTC
         var factor = (time - state1.t) / (state2.t - state1.t);
         var lon   = state1.ln + (state2.ln - state1.ln) * factor;
         var lat   = state1.lt + (state2.lt - state1.lt) * factor;
-        var alt   = state1.h + (state2.h - state1.h) * factor;
-        var speed = state1.v + (state2.v - state1.v) * factor;
-        return { time: time, lon: lon, lat: lat, alt: alt, speed: speed };
+        return { time: time, lon: lon, lat: lat };
+        // var alt   = state1.h + (state2.h - state1.h) * factor;
+        // var speed = state1.v + (state2.v - state1.v) * factor;
+        // return { time: time, lon: lon, lat: lat, alt: alt, speed: speed };
     }
     catch (ex) {
-        window.location.reload(true);
+        console.log("Something went wrong", ex);
+        // window.location.reload(true);
         return null;
     }
 }
@@ -269,6 +282,31 @@ function getHttp (url, callback) {
     };
     request.open(method, url, true);
     request.send();
+}
+
+function getSatellitePositionAt(satrec, date) {
+    var position_and_velocity = satellite.propagate(satrec,
+                                                    date.getUTCFullYear(), 
+                                                    date.getUTCMonth() + 1,
+                                                    date.getUTCDate(),
+                                                    date.getUTCHours(), 
+                                                    date.getUTCMinutes(), 
+                                                    date.getUTCSeconds());
+
+    var position_eci = position_and_velocity["position"];
+    var gmst = satellite.gstimeFromDate(date.getUTCFullYear(), 
+                                           date.getUTCMonth() + 1, // Note, this function requires months in range 1-12. 
+                                           date.getUTCDate(),
+                                           date.getUTCHours(), 
+                                           date.getUTCMinutes(), 
+                                           date.getUTCSeconds());
+    // Geodetic
+    var position_gd    = satellite.eciToGeodetic(position_eci, gmst);
+
+    // Geodetic coords are accessed via "longitude", "latitude".
+    var lon = satellite.degreesLong(position_gd["longitude"]);
+    var lat = satellite.degreesLat(position_gd["latitude"]);
+    return { t: Math.round(date.getTime()/1000), ln: lon, lt: lat };
 }
 
 // ============================================= TOOLS
