@@ -13,6 +13,7 @@ var placeCounter = 0;
 var lastState = {};
 var createObjectURL = (window.URL && window.URL.createObjectURL) || (window.webkitURL && window.webkitURL.createObjectURL);
 var cloudOffset = [0,0];
+var offset_target = [0,0];
 
 // ISS TLL lines
 var tleLine1 = '1 25544U 98067A   15305.48861694  .00009749  00000-0  15091-3 0  9998',
@@ -87,6 +88,7 @@ function init() {
         }
         
         window.setInterval("update(getCurrentTime())", 1000);
+        window.setInterval("updateClouds(getCurrentTime())", 100);
 
         if (window.DeviceMotionEvent) {
             window.addEventListener("devicemotion", onMotionUpdate, false);
@@ -171,6 +173,17 @@ function update(time) {   // time in seconds since Jan. 01, 1970 UTC
     scene.styles.water.shaders.uniforms.u_sun_offset = sunPos;
 
     lastState = state;
+}
+
+function updateClouds() {
+    if (scene.styles && 
+        offset_target[0] !== cloudOffset[0] && 
+        offset_target[1] !== cloudOffset[1] ) {
+        cloudOffset[0] += (offset_target[0]-cloudOffset[0])*.25;
+        cloudOffset[1] += (offset_target[1]-cloudOffset[1])*.25;
+        scene.styles.earth.shaders.uniforms.u_clouds_offset = cloudOffset;
+        scene.styles.water.shaders.uniforms.u_clouds_offset = cloudOffset;
+    }
 }
 
 function updateLocation(text) {
@@ -321,23 +334,12 @@ function unhide(divID) {
 
 function onMouseUpdate (e) {
     var mouse = [ (e.pageX/screen.width-.5)*0.005, (e.pageY/screen.height-.5)*-0.002];
-    cloudOffset[0] += (mouse[0]-cloudOffset[0])*.05;
-    cloudOffset[1] += (mouse[1]-cloudOffset[1])*.05;
-    if (scene.styles) {
-        scene.styles.earth.shaders.uniforms.u_clouds_offset = cloudOffset;
-        scene.styles.water.shaders.uniforms.u_clouds_offset = cloudOffset;
-    }
+    offset_target[0] = mouse[0];
+    offset_target[1] = mouse[1];
 }
 
 function onMotionUpdate (e) {
     var accX = Math.round(event.accelerationIncludingGravity.x*10)/10;  
     var accY = Math.round(event.accelerationIncludingGravity.y*10)/10;  
-    var motion = [ -accX,-accY ];
-
-    if (scene.styles && motion[0] && motion[1] ) {
-        cloudOffset[0] += (motion[0]/1000-cloudOffset[0])*.5;
-        cloudOffset[1] += (motion[1]/1000-cloudOffset[1])*.5;
-        scene.styles.earth.shaders.uniforms.u_clouds_offset = cloudOffset;
-        scene.styles.water.shaders.uniforms.u_clouds_offset = cloudOffset;
-    }
+    offset_target = [ -accX/1000, -accY/1000 ];
 }
