@@ -1,17 +1,33 @@
 ﻿# Author @patriciogv - 2015
 
+import:
+    - https://tangrams.github.io/blocks/global.yaml
+    - https://tangrams.github.io/blocks/elevation/normal.yaml
+    - https://tangrams.github.io/blocks/geometry/projections.yaml
+    - https://tangrams.github.io/blocks/functions/zoom.yaml
+    - https://tangrams.github.io/blocks/shapes/cross.yaml
+    - https://tangrams.github.io/blocks/space/tile.yaml
+    - https://tangrams.github.io/blocks/elevation/stripes.yaml
+    - https://tangrams.github.io/ux_language/ux_language.yaml
+
 sources:
-    osm:
-        type: TopoJSON
-        # This is my API Key for this project
-        # They are free! get one at https://mapzen.com/developers/sign_in
-        url:  //vector.mapzen.com/osm/all/{z}/{x}/{y}.topojson?api_key=vector-tiles-DFFH1UM
     iss:
         type: GeoJSON
         url: data/iss.geojson
-cameras:
-    perspective:
-        type: flat
+    osm:
+        type: TopoJSON
+        url: https://tile.mapzen.com/mapzen/vector/v1/all/{z}/{x}/{y}.topojson?api_key=vector-tiles-DFFH1UM
+        rasters: [normals-elevation]
+        max_zoom: 16
+    normals-elevation:
+        type: Raster
+        url: https://tile.mapzen.com/mapzen/terrain/v1/normal/{z}/{x}/{y}.png?api_key=mapzen-YoRQaZF
+        max_zoom: 15
+
+# cameras:
+#     perspective:
+#         type: flat
+
 lights:
     point_light:
         type: point
@@ -19,173 +35,240 @@ lights:
         position: [0,0,1000px]
         specular: 1
         diffuse: 1
-styles:
-    geometry-matrices:
-        defines:
-            PI: 3.14159265358979323846
-        shaders:
-            blocks:
-                global: |
-                    // Rotate in 2, 3 and 4 dimensions
-                    // ================================
-                    mat2 rotate2D (float angle) {
-                        return mat2(cos(angle),-sin(angle),
-                                    sin(angle),cos(angle));
-                    }
-                    mat3 rotateX3D (float phi) {
-                        return mat3(
-                            vec3(1.,0.,0.),
-                            vec3(0.,cos(phi),-sin(phi)),
-                            vec3(0.,sin(phi),cos(phi)));
-                    }
-                    mat4 rotateX4D (float phi) {
-                        return mat4(
-                            vec4(1.,0.,0.,0),
-                            vec4(0.,cos(phi),-sin(phi),0.),
-                            vec4(0.,sin(phi),cos(phi),0.),
-                            vec4(0.,0.,0.,1.));
-                    }
-                    mat3 rotateY3D (float theta) {
-                        return mat3(
-                            vec3(cos(theta),0.,-sin(theta)),
-                            vec3(0.,1.,0.),
-                            vec3(sin(theta),0.,cos(theta)));
-                    }
-                    mat4 rotateY4D (float theta) {
-                        return mat4(
-                            vec4(cos(theta),0.,-sin(theta),0),
-                            vec4(0.,1.,0.,0.),
-                            vec4(sin(theta),0.,cos(theta),0.),
-                            vec4(0.,0.,0.,1.));
-                    }
-                    mat3 rotateZ3D (float psi) {
-                        return mat3(
-                            vec3(cos(psi),-sin(psi),0.),
-                            vec3(sin(psi),cos(psi),0.),
-                            vec3(0.,0.,1.));
-                    }
-                    mat4 rotateZ4D (float psi) {
-                        return mat4(
-                            vec4(cos(psi),-sin(psi),0.,0),
-                            vec4(sin(psi),cos(psi),0.,0.),
-                            vec4(0.,0.,1.,0.),
-                            vec4(0.,0.,0.,1.));
-                    }
-    geometry-projection:
-        shaders:
-            defines:
-                EARTH_RADIUS: 6378137.0
-                PI: 3.14159265358979323846
-                HALF_PI: 1.570796327
-                QUATER_PI: .785398163
-                deg2rad(d): (((d)*3.14159265358979323846)/180.0)
-                rad2deg(d): (((d)*180.0)/3.14159265358979323846)
-            blocks:
-                global: |
-                    //
-                    //    The following functions take or return there results in something close to meters, along the equator 
-                    //    http://wiki.openstreetmap.org/wiki/Mercator
-                    float y2lat_m (float y) { return rad2deg(2.0*atan(exp((y/EARTH_RADIUS)))-HALF_PI); }
-                    float x2lon_m (float x) { return rad2deg(x/EARTH_RADIUS); }
-                    float lat2y_m (float lat) { return EARTH_RADIUS*log(tan(QUATER_PI+ deg2rad(lat)/2.0)); }
-                    float lon2x_m (float lon) { return deg2rad(lon)*EARTH_RADIUS; }
-    functions-map:
-        shaders:
-            defines:
-                EPSILON: 0.0000001
-            blocks:
-                global: |
-                    float map (in float value, in float inputMin, in float inputMax, in float outputMin, in float outputMax, bool clamp) {
-                        if (abs(inputMin - inputMax) < EPSILON){
-                            return outputMin;
-                        } else {
-                            float outVal = ((value - inputMin) / (inputMax - inputMin) * (outputMax - outputMin) + outputMin);
-                        
-                            if( clamp ){
-                                if(outputMax < outputMin){
-                                    if( outVal < outputMax ) outVal = outputMax;
-                                    else if( outVal > outputMin ) outVal = outputMin;
-                                }else{
-                                    if( outVal > outputMax ) outVal = outputMax;
-                                    else if( outVal < outputMin ) outVal = outputMin;
-                                }
-                            }
-                            return outVal;
-                        }
-                    }
-                    float map (in float value, in float inputMin, in float inputMax, in float outputMin, in float outputMax) {
-                        return map(value, inputMin, inputMax, outputMin, outputMax, true); 
-                    }
-    shapes-rect:
-        shaders:
-            blocks:
-                global: |
-                    // get distance field of a rectangle in the center
-                    // ================================
-                    float rectDF(vec2 st, vec2 size) {
-                        //float aspect = u_resolution.x/u_resolution.y;
-                        st = st*2.-1.;
-                        //st.x *= aspect;
-                        return length(max(abs(st)-size,.0));
-                    }
-                    float rectDF(vec2 st, float size) {
-                        //float aspect = u_resolution.x/u_resolution.y;
-                        st = st*2.-1.;
-                        //st.x *= aspect;
-                        return length(max(abs(st)-size,.0));
-                    }
-                    
-                    // Draw a round corners rectangle in the center
-                    // ================================
-                    float rect(vec2 st, vec2 size, float radio) {
-                        radio = max(.000001, radio);
-                        return 1.0-step(radio, rectDF(st, size-radio));
-                    }
-                    
-                    float rect(vec2 st, float size, float radio) {
-                        return rect(st,vec2(size),radio);
-                    }
-                    
-                    // Draw a rectangle in the center
-                    // ================================
-                    float rect(vec2 st, vec2 size){
-                        size = .25-size*.125;
-                        vec2 uv = step(size,st*(1.0-st));
-                        return (uv.x*uv.y);
-                    }
-                    
-                    float rect(vec2 st, float size){
-                        return rect(st,vec2(size));
-                    }
-    shapes-cross:
-        mix: shapes-rect
-        shaders:
-            blocks:
-                global: |
-                    // Draw a Cross in the middle of the ST space
-                    float cross (vec2 st, float size, float width) {
-                        return  clamp(  rect(st, vec2(size*0.5,width*0.125)) +
-                                        rect(st, vec2(width*0.125,size*0.5)),0.,1.);
-                    }
-    space-tile:
-        shaders:
-            defines:
-                TILE_SCALE: 0.0002445
-                NORMALIZED_SHORT(x): (x * 32767.)
-            blocks:
-                global: |
-                    // Variant to be add to both vertex and fragments shaders
-                    varying vec3 v_pos;
-                    //
-                    // Get the coordinates in tile space
-                    // ================================
-                    vec2 getTileCoords () {
-                        return fract(v_pos.xy*TILE_SCALE);
-                    }
 
-                position: |
-                    // Normalize the attribute position of a vertex
-                    v_pos = NORMALIZED_SHORT(a_position.xyz);
+layers:
+    features:
+        data: { source: iss }
+        filter: { kind: [orbit], $zoom: { min: 0, max: 9 } }
+        draw:
+            spline:
+                order: 100
+                color: [[1,[0.906,0.914,0.0]],[9,[0.914,0.914,0.914]]]
+                width: [[1, 2px], [7, 1.5px], [8, 0.5px], [9, 0px]]
+    earth:
+        data: { source: osm }
+        draw:
+            earth:
+                order: 0
+                color: '#555'
+    water:
+        data: { source: osm }
+        draw:
+            water:
+                order: 1
+                color: '#ddd'
+    landuse:
+        data: { source: osm }
+        draw:
+            landuse:
+                order: 2
+                color: gray
+    roads:
+        data: { source: osm, layer: roads }
+        filter: { $zoom: {min: 7}, not: { highway: service, kind: rail } }
+        draw:
+            spline:
+                order: global.order
+                color: white
+                width: [[6,0px], [7,.25px], [10, .5px], [15, .75px], [17, 5m]]
+        highway:
+            filter: { kind: highway }
+            draw:
+                spline:
+                    color: [1.000,0.897,0.058]
+                    width: [[1,0px], [6,.25px], [11, 2px], [14, 3px], [16, 4px], [17, 10m]]
+            link:
+                filter: { is_link: yes } # on- and off-ramps, etc
+                draw:
+                    spline:
+                        color: [1.000,0.933,0.710]
+                        width: [[10,0px], [14, 3px], [16, 5px], [18, 10m]]
+                tunnel-link:
+                    filter: {is_tunnel: yes, $zoom: {min: 13} }
+                    draw:
+                        spline:
+                            color: [0.805,0.748,0.557]
+            tunnel:
+                filter: {is_tunnel: yes, $zoom: {min: 13} }
+                draw:
+                    spline:
+                        color: [0.805,0.748,0.557]
+        major_road:
+            filter: { kind: major_road }
+            draw:
+                spline:
+                    color: [[13, [0.8, 0.8, 0.8]], [17, white]]
+                    width: [[1,0px], [6,.5px], [11,1px], [14, 2px], [16, 2.5px], [19, 8m]]
+                    primary:
+                        filter: { highway: primary }
+                        draw:
+                            spline:
+                                width: [[1,0px], [6,.5px], [11,1px], [11, 1.5px], [13, 2.5px], [16, 2.5px], [19, 8m]]
+                    secondary:
+                        filter: { highway: secondary }
+                        draw:
+                            spline:
+                                width: [[1,0px], [6,.5px], [11,1px], [13, 1.5px], [14, 2.5px], [16, 2.5px], [19, 8m]]
+                    tertiary:
+                        filter: { highway: tertiary }
+                        draw:
+                            spline:
+                                width: [[1,0px], [6,.5px], [11,1px], [13, .75px], [14, 2.5px], [16, 2.5px], [19, 8m]]
+        path:
+            filter: { kind: path }
+            draw:
+                spline:
+                    color: [0.8, 0.8, 0.8]
+                    width: [[14,.1px],[16,.5px], [17, 2m]]
+    places:
+        data: { source: osm }
+        draw:
+            text:
+                text_source: global.ux_language_text_source
+                priority: 10
+                font:
+                    family: ['Jura', Helvetica]
+                    weight: 100
+                    fill: [[3,[1.,1.,1.]], [10,[1,1,0]]]
+                    size: 10px
+                    stroke: { color: black, width: 4 }
+            points:
+                color: white
+                priority: 5
+                size: [[3,1px],[5,5px]]
+                color: [[5,[1.,1.,1.]], [10,[1,1,0]]]
+                text:
+                    buffer: 3px
+                    font:
+                        family: ['Jura', Helvetica]
+                        fill: [[5,[1.,1.,1.]], [10,[1,1,0]]]
+                        weight: 100
+                        size: 10px
+                        stroke: { color: black, width: 4 }
+        country-z4:
+            filter:
+                all:
+                    - kind: [country]
+                    - $zoom: [4]
+            draw:
+                text:
+                    visible: true
+                    font:
+                        size: 12px
+                        transform: uppercase
+        country-z5:
+            filter: { name: true, population: true, kind: [country], $zoom: [5] }
+            draw:
+                text:
+                    visible: true
+                    font:
+                        size: 14px
+                        transform: uppercase
+            z5-dont-label:
+                filter: { name: [Falkland Islands, Nederland,Luxembourg,Liechtenstein,San Marino,Civitatis Vaticanæ,Crna Gora,Македонија,The Gambia,Burundi,Swaziland,الإمارات العربية المتحدة,العراق,Singapore,El Salvador,Belize,Trinidad and Tobago, Saint Lucia, Montserrat,Anguilla,República Dominicana,Bahamas,British Virgin Islands,Antigua and Barbuda,Grenada,Sint Maarten,Saint Kitts and Nevis,Cayman Islands,België - Belgique - Belgien], $zoom: {min: 5, max: 6} }
+                draw:
+                    text:
+                        visible: false
+        country-z6:
+            filter:
+                all:
+                    - name: true
+                    - population: true
+                    - kind: [country]
+                    - $zoom: [6]
+                any:
+                    - { population: { min: 5000000 } }
+            draw:
+                text:
+                    visible: true
+                    priority: 3
+                    font:
+                        size: 16px
+                        transform: uppercase
+            z6-dont-label:
+                filter: { name: [Luxembourg,Liechtenstein,San Marino,Civitatis Vaticanæ,El Salvador,Belize,België - Belgique - Belgien], $zoom: {min: 6, max: 7} }
+                draw:
+                    text:
+                        visible: false
+        country-z7:
+            filter: { name: true, kind: [country], $zoom: [7] }
+            draw:
+                text:
+                    visible: true
+                    priority: 3
+                    font:
+                        size: 18px
+                        transform: uppercase
+            z7-dont-label:
+                filter: { name: [Luxembourg,Liechtenstein,San Marino,Civitatis Vaticanæ,België - Belgique - Belgien,Хуссар Ирыстон,Аҧсны - Абхазия], $zoom: {min: 7, max: 8} }
+                draw:
+                    text:
+                        visible: false
+        populated-places:
+            filter: { kind: locality, name: true }
+            capital:
+                filter: { country_capital: true }
+                draw:
+                    points:
+                        size: [[3,0px],[5,5px],[10,14px]]
+                        text:
+                            fonts:
+                                weight: 300
+                                size: [[5,5px],[10,14px]]
+    boundaries:
+        data: { source: osm }
+        draw:
+            lines:
+                style: boundaries-region
+                order: global.order
+                color: red
+                width: 1px
+                visible: false
+        country:
+            filter:
+                kind: [country]
+            draw:
+                lines:
+                    color: [[3,[1,1,1]],[12,[.3,.3,.3]],[20,[0,0,0]]]
+                    width: [[1, 0px], [3, 0px], [4, 1px], [9, 1.5px], [14, 2.5px], [16, 3px], [17, 10m]]
+                    visible: true
+            water:
+                filter: { maritime_boundary: true }
+                draw:
+                    lines:
+                        color: lightblue                        
+        country_disputed:
+            filter: { kind: [disputed, indefinite, indeterminate, lease_limit, line_of_control, overlay_limit] }
+            draw:
+                lines:
+                    style: boundaries-region
+                    order: global.order
+                    color: [[3,[.6,.5,.5]],[12,[.5,.3,.3]],[20,[.4,0,0]]]
+                    width: [[1, 0.2px], [3, 0px], [4, 1.0px], [9, 1.5px], [14, 2.5px], [16, 3.5px], [17, 10m]]
+                    visible: true
+        region:
+            filter:
+                kind: [region]
+            draw:
+                lines:
+                    style: boundaries-region
+                    color: [[5,[.5,.5,.5]],[12,[.3,.3,.3]]]
+                    width: [[4, 0px], [5, 0.5px], [8, 1px], [14, 1.5px], [17, 1m]]
+                    visible: true
+            water:
+                filter: { maritime_boundary: true }
+                draw:
+                    lines:
+                        color: lightblue
+        water:
+            filter: { maritime_boundary: true }
+            draw:
+                lines:
+                    style: boundaries-region
+                    color: lightblue
+                    visible: false
+                    width: [[10, 0px], [12, 1px], [17, 1m]]
+styles:
     grid:
         mix: space-tile
         shaders:
@@ -213,7 +296,7 @@ styles:
                     float TileGrid(){ return mix(TileGrid(1.),TileGrid(2.),fract(u_map_position.z)); }
     sunlight:
         base: polygons
-        mix: [geometry-projection, geometry-matrices, functions-map]
+        mix: [elevation-normal, geometry-projections, geometry-matrices, functions-map]
         shaders:
             uniforms:
                 u_sun_offset: [-92, -10.273909587413442]
@@ -236,27 +319,26 @@ styles:
                 color: |
                     updateSun();
     zoom:
+        mix: [functions-zoom]
         shaders:
+            defines:
+                ZOOM_START: 6.
+                ZOOM_END: 9.
             blocks: 
                 normal: |
-                    float SatOsmPct = pow(1.-map(u_map_position.z,6.,9.,0.,1.),5.0);
+                    float SatOsmPct = pow(1.-zoom(),5.0);
     textures:
         base: polygons
         mix: [sunlight, zoom]
         animated: true
         shaders:
             uniforms:
-                u_normal_map: imgs/earth-normals-hd.jpg
                 u_day_map: imgs/earth-texture-day-xhd.jpg
                 u_night_map: imgs/earth-texture-night-xhd.jpg
                 u_cloud_map: imgs/earth-clouds-hd.jpg
                 u_clouds_offset: [0,0]
             blocks:
                 global: |
-                    vec3 normalmap (vec2 st) {
-                        vec3 normalTex = texture2D(u_normal_map,fract(st)).rgb-.5;
-                        return normalTex;
-                    }
                     vec4 multitexture ( vec2 st, float lightF, float zoomF ) {
                         vec4 color = vec4(1.);
                         color = mix(texture2D(u_night_map,fract(st)), 
@@ -267,7 +349,7 @@ styles:
                         return color+clouds*zoomF;
                     }
                 filter: |
-                    color = mix(color,multitexture(uv,light_accumulator_diffuse.r,SatOsmPct),SatOsmPct);       
+                    color = mix(color, multitexture(uv,light_accumulator_diffuse.r,SatOsmPct),SatOsmPct);       
     satelite:
         mix: [shapes-cross, grid]
         shaders:
@@ -320,213 +402,30 @@ styles:
         material: 
             diffuse: white
             specular: black
-        shaders:
-            blocks: 
-                normal: |
-                    normal = mix(normal,sphere*normalmap(uv)*3.,SatOsmPct);
     water:
         mix: [textures, satelite]
         material:
             diffuse: white
             specular: white
         animated: true
-        shaders:
-            blocks: 
-                normal: |
-                    normal = mix(normal,sphere*normalmap(uv)*3.,SatOsmPct);
     spline:
         base: lines
         lighting: false
-    area:
-        base: polygons
-        mix: [functions-map, zoom, satelite, geometry-matrices]
-        blend: inlay
-        shaders: 
-            blocks: 
-                global: |
-                    float stripes(vec2 st, float width){
-                        st = rotate2D(.72)*st;
-                        st *= 92.;
-                        return step(.5+width*0.5,abs(sin(st.y*3.14159265358)));
-                    }
-                filter: |
-                    color.a = stripes(st_center*2.,SatOsmPct*1.4)*.5;
-layers:
-    earth:
-        data: { source: osm }
-        draw:
-            earth:
-                order: 0
-                color: '#555'
-            spline:
-                order: 3
-                color: white
-                width: [[1,0px],[5,1.5px]]
-    water:
-        data: { source: osm }
-        draw:
-            water:
-                order: 1
-                color: '#ddd'
+    boundaries-region:
+        base: lines
+        dash: [6,2]
     landuse:
-        data: { source: osm }
-        draw:
-            area:
-                order: 2
-                color: gray
-    roads:
-        data: { source: osm, layer: roads }
-        filter: { $zoom: {min: 7}, not: { highway: service, kind: rail } }
-        draw:
-            spline:
-                order: 7
-                color: white
-                width: [[6,0px], [7,.25px], [10, .5px], [15, .75px], [17, 5m]]
-        highway:
-            filter: { kind: highway }
-            draw:
-                spline:
-                    order: 8
-                    color: [1.000,0.897,0.058]
-                    width: [[1,0px], [6,.25px], [11, 2px], [14, 3px], [16, 4px], [17, 10m]]
-            link:
-                filter: { is_link: yes } # on- and off-ramps, etc
-                draw:
-                    spline:
-                        color: [1.000,0.933,0.710]
-                        width: [[10,0px], [14, 3px], [16, 5px], [18, 10m]]
-                tunnel-link:
-                    filter: {is_tunnel: yes, $zoom: {min: 13} }
-                    draw:
-                        spline:
-                            color: [0.805,0.748,0.557]
-            tunnel:
-                filter: {is_tunnel: yes, $zoom: {min: 13} }
-                draw:
-                    spline:
-                        order: 5
-                        color: [0.805,0.748,0.557]
-        major_road:
-            filter: { kind: major_road }
-            draw:
-                spline:
-                    color: [[13, [0.8, 0.8, 0.8]], [17, white]]
-                    width: [[1,0px], [6,.5px], [11,1px], [14, 2px], [16, 2.5px], [19, 8m]]
-                    primary:
-                        filter: { highway: primary }
-                        draw:
-                            spline:
-                                width: [[1,0px], [6,.5px], [11,1px], [11, 1.5px], [13, 2.5px], [16, 2.5px], [19, 8m]]
-                    secondary:
-                        filter: { highway: secondary }
-                        draw:
-                            spline:
-                                width: [[1,0px], [6,.5px], [11,1px], [13, 1.5px], [14, 2.5px], [16, 2.5px], [19, 8m]]
-                    tertiary:
-                        filter: { highway: tertiary }
-                        draw:
-                            spline:
-                                width: [[1,0px], [6,.5px], [11,1px], [13, .75px], [14, 2.5px], [16, 2.5px], [19, 8m]]
-        path:
-            filter: { kind: path }
-            draw:
-                spline:
-                    color: [0.8, 0.8, 0.8]
-                    width: [[14,.1px],[16,.5px], [17, 2m]]
-        z-order:
-            filter: { $zoom: {min: 14} }
-            draw:
-                spline:
-                    order: function() { return 6 + feature.sort_key; }
-    places:
-        data: { source: osm }
-        filter: { name: true }
-        draw:
-            text:
-                visible: true
-                priority: 2
-                font:
-                    size: 14px
-                    family: ['Jura', Helvetica]
-                    fill: black
-                    stroke: { color: white , width: 3.5 }
-        continent:
-            filter: { name: true, kind: [continent], $zoom: {max: 5} }
-            draw:
-                text:
-                    visible: true
-                    font:
-                        size: 18px
-                        weight: bold
-                        transform: uppercase
-        region:
-            filter: { name: true, kind: [state], $zoom: {min: 6, max: 9} }
-            draw:
-                text:
-                    priority: 2
-                    visible: true
-                    text_source: function() { if(feature["name:short"]) { return feature["name"]; } else { return "" } }
-                    font:
-                        size: 16px
-                        fill: [0.3,0.3,0.3]
-                        transform: uppercase
-        populated-places:
-            draw:
-                text:
-                    offset: [0, 8px]
-
-            populated-places-natural-earth-z2-z3:
-                filter: { name: true, source: naturalearthdata.com, scalerank: 0 }
-                draw:
-                    text:
-                        priority: 1
-                        visible: true
-                        font:
-                            size: 18px
-        populated-places-osm:
-                filter: { name: true, source: openstreetmap, not: { kind: [country, county, state, island, neighbourhood, suburb, quarter] }, $zoom: {min: 8} }
-                draw:
-                    text:
-                        priority: 1
-                        interactive: true
-                        visible: true
-                        font:
-                            size: 16px
-                # add townspots from zoom 0 thru zoom 11
-                townspots:
-                    filter: { $zoom: { max: 11 } }
-                # nix major cities under z15
-                major-places:
-                    filter: { kind: [city], $zoom: { min: 13, max: 15 } }
-                    visible: false
-                    draw:
-                        text:
-                            font:
-                                size: 16px
-                major-places:
-                    filter: { kind: [city], $zoom: { min: 15 } }
-                    visible: false
-                    draw:
-                        text:
-                            visible: false
-                            font:
-                                size: 14px
-                medium-places:
-                    filter: { kind: [town], $zoom: { max: 11 } }
-                    visible: false
-                # nix podunk burgs under z15
-                minor-places-village:
-                    filter: { kind: [village], $zoom: { max: 12 } }
-                    visible: false
-                # mobile home parks, really?
-                minor-places-hamlet:
-                    filter: { kind: [hamlet], $zoom: { max: 16 } }
-                    visible: false
-    features:
-        data: { source: iss }
-        filter: { kind: [orbit], $zoom: { min: 0, max: 9 } }
-        draw:
-            spline:
-                order: 10
-                color: [[1,[0.906,0.914,0.0]],[9,[0.914,0.914,0.914]]]
-                width: [[1, 2px], [7, 1.5px], [8, 0.5px], [9, 0px] ]
+        base: polygons
+        mix: [zoom, satelite, geometry-matrices, elevation-stripes]
+        shaders:
+            defines:
+                ZOOM_START: 0.
+                ZOOM_END: 13.
+                STRIPES_ALPHA: .5
+                STRIPES_SCALE: 70.
+                STRIPES_DIR: vec3(-0.600,-0.420,0.560)
+                STRIPES_PCT: 1.8
+                STRIPES_WIDTH: mix( (1.-zoom()),
+                                    dot((sampleRaster(int(NORMAL_TEXTURE_INDEX)).rgb-.5)*2.,
+                                        STRIPES_DIR),
+                                    zoom())*STRIPES_PCT

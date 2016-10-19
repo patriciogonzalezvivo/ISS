@@ -46,14 +46,14 @@ body {
 #left-info {
     font-family: 'Jura', Helvetica, Arial, sans-serif;
     top: 500px; 
-    left: -480px;
+    left: -377px;
     -ms-transform: rotate(90deg);
     -webkit-transform: rotate(90deg);
     transform: rotate(90deg);
     pointer-event: none;
     color: white;
     text-outline: 2px 2px black;
-    width: 1000px;
+    width: 800px;
     font-size: 14px;
 }
 
