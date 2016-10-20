@@ -15,6 +15,10 @@ var createObjectURL = (window.URL && window.URL.createObjectURL) || (window.webk
 var cloudOffset = [0,0];
 var offset_target = [0,0];
 
+// This is my API Key for this project. 
+// They are free! get one at https://mapzen.com/developers/sign_in
+var PELIAS_KEY = 'search--cv2Foc';
+
 // ============================================= INIT 
 // Prepair leafleat and tangram
 map = (function () {
@@ -117,28 +121,27 @@ function initOrbit() {
             console.error(err);
         }
 
-        var response = JSON.parse(res);
-        response.features[0].geometry.coordinates = [];
-        response.features[1].geometry.coordinates = [];
-
-        var prevLon = orbit.orbitData[0].ln;
-        var currentGeom = 0;
+        var coordinates = [];
         for (var i = 0; i < orbit.orbitData.length; i++) {
-            if (prevLon > 0.0 && orbit.orbitData[i].ln < 0.0){
-                response.features[currentGeom].geometry.coordinates.push([orbit.orbitData[i].ln+360, orbit.orbitData[i].lt])
-                currentGeom = 1;
-            }
-            response.features[currentGeom].geometry.coordinates.push([orbit.orbitData[i].ln, orbit.orbitData[i].lt]);
-            prevLon = orbit.orbitData[i].ln;
+            coordinates.push([orbit.orbitData[i].ln, orbit.orbitData[i].lt]);
         }
 
-        if (response.features[1].geometry.coordinates.length === 0.0) {
-            response.features.length = 1;
-        }
-
-        var content = JSON.stringify(response);
-
-        scene.config.sources.iss.url = createObjectURL(new Blob([content]));
+        scene.setDataSource('iss', { type: 'GeoJSON', data: {
+            type: 'FeatureCollection',
+            features: [
+                { 
+                    type: 'Feature',
+                    geometry: {
+                        type: 'LineString',
+                        coordinates: coordinates
+                    },
+                    properties: {
+                        kind: 'orbit',
+                        name: 'ISS'
+                    }
+                }
+            ] 
+        }});
         scene.rebuild();
     });
 }
@@ -214,11 +217,6 @@ function updateLocation(text) {
 }
 
 function updateGeocode (lat, lng) {
-
-    // This is my API Key for this project. 
-    // They are free! get one at https://mapzen.com/developers/sign_in
-    var PELIAS_KEY = 'search--cv2Foc';
-
     var endpoint = '//search.mapzen.com/v1/reverse?point.lat=' + lat + '&point.lon=' + lng + '&size=1&layers=coarse&api_key=' + PELIAS_KEY;
 
     getHttp(endpoint, function(err, res){
@@ -255,14 +253,11 @@ function setDefinition (defString) {
 
 function getCurrentTime() {   // time in seconds since Jan. 01, 1970 UTC
     return Math.round(new Date().getTime()/1000) - timeDiff;
-    // return Math.round(new Date().getTime()/1000);
 }
 
 function getSatelliteState(time) {   // time in seconds since Jan. 01, 1970 UTC
     if ( (time < track[0].t) || (time > track[track.length-1].t) ) {
         window.location.reload(true);
-        // console.log("Time out of limits", time, track[0].t, "-", track[track.length-1].t)
-        // window.location.reload(true);
         return null;
     }
 
@@ -273,7 +268,7 @@ function getSatelliteState(time) {   // time in seconds since Jan. 01, 1970 UTC
         var factor = (time - state1.t) / (state2.t - state1.t);
         var lon   = state1.ln + (state2.ln - state1.ln) * factor;
         var lat   = state1.lt + (state2.lt - state1.lt) * factor;
-        // return { time: time, lon: lon, lat: lat };
+
         var alt   = state1.h + (state2.h - state1.h) * factor;
         var speed = state1.v + (state2.v - state1.v) * factor;
         return { time: time, lon: lon, lat: lat, alt: alt, speed: speed };
@@ -308,31 +303,6 @@ function getHttp (url, callback) {
     request.open(method, url, true);
     request.send();
 }
-
-// function getSatellitePositionAt(satrec, date) {
-//     var position_and_velocity = satellite.propagate(satrec,
-//                                                     date.getUTCFullYear(), 
-//                                                     date.getUTCMonth() + 1,
-//                                                     date.getUTCDate(),
-//                                                     date.getUTCHours(), 
-//                                                     date.getUTCMinutes(), 
-//                                                     date.getUTCSeconds());
-
-//     var position_eci = position_and_velocity["position"];
-//     var gmst = satellite.gstimeFromDate(date.getUTCFullYear(), 
-//                                            date.getUTCMonth() + 1, // Note, this function requires months in range 1-12. 
-//                                            date.getUTCDate(),
-//                                            date.getUTCHours(), 
-//                                            date.getUTCMinutes(), 
-//                                            date.getUTCSeconds());
-//     // Geodetic
-//     var position_gd    = satellite.eciToGeodetic(position_eci, gmst);
-
-//     // Geodetic coords are accessed via "longitude", "latitude".
-//     var lon = satellite.degreesLong(position_gd["longitude"]);
-//     var lat = satellite.degreesLat(position_gd["latitude"]);
-//     return { t: Math.round(date.getTime()/1000), ln: lon, lt: lat };
-// }
 
 // ============================================= TOOLS
 function unhide(divID) {

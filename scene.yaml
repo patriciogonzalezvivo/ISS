@@ -11,9 +11,6 @@ import:
     - https://tangrams.github.io/ux_language/ux_language.yaml
 
 sources:
-    iss:
-        type: GeoJSON
-        url: data/iss.geojson
     osm:
         type: TopoJSON
         url: https://tile.mapzen.com/mapzen/vector/v1/all/{z}/{x}/{y}.topojson?api_key=vector-tiles-DFFH1UM
@@ -23,6 +20,9 @@ sources:
         type: Raster
         url: https://tile.mapzen.com/mapzen/terrain/v1/normal/{z}/{x}/{y}.png?api_key=mapzen-YoRQaZF
         max_zoom: 15
+    # iss:
+    #     type: GeoJSON
+    #     url: data/iss.geojson
 
 # cameras:
 #     perspective:
@@ -37,31 +37,31 @@ lights:
         diffuse: 1
 
 layers:
-    features:
+    orbit:
         data: { source: iss }
-        filter: { kind: [orbit], $zoom: { min: 0, max: 9 } }
+        filter: { $zoom: { min: 0, max: 9 } }
         draw:
-            spline:
-                order: 100
+            orbit:
+                order: 100001
                 color: [[1,[0.906,0.914,0.0]],[9,[0.914,0.914,0.914]]]
                 width: [[1, 2px], [7, 1.5px], [8, 0.5px], [9, 0px]]
     earth:
         data: { source: osm }
         draw:
             earth:
-                order: 0
+                order: global.order
                 color: '#555'
     water:
         data: { source: osm }
         draw:
             water:
-                order: 1
+                order: global.order
                 color: '#ddd'
     landuse:
         data: { source: osm }
         draw:
             landuse:
-                order: 2
+                order: global.order
                 color: gray
     roads:
         data: { source: osm, layer: roads }
@@ -141,9 +141,9 @@ layers:
                     buffer: 3px
                     font:
                         family: ['Jura', Helvetica]
-                        fill: [[5,[1.,1.,1.]], [10,[1,1,0]]]
                         weight: 100
                         size: 10px
+                        fill: [[5,[1.,1.,1.]], [10,[1,1,0]]]
                         stroke: { color: black, width: 4 }
         country-z4:
             filter:
@@ -205,16 +205,18 @@ layers:
                     text:
                         visible: false
         populated-places:
-            filter: { kind: locality, name: true }
             capital:
                 filter: { country_capital: true }
                 draw:
                     points:
+                        visible: true
                         size: [[3,0px],[5,5px],[10,14px]]
                         text:
                             fonts:
                                 weight: 300
-                                size: [[5,5px],[10,14px]]
+                                size: [[5,5px],[10,18px]]
+                                fill: White
+                                stroke: { color: black, width: 4 }
     boundaries:
         data: { source: osm }
         draw:
@@ -288,7 +290,7 @@ styles:
                     float TileGrid(float res){
                         vec2 st = getTileCoords()*100.*res;
                         float pct = 0.0;
-                        float press = 0.5+(1.0-fract(u_map_position.z))*0.1;
+                        float press = 0.5+(1.0-fract(u_map_position.z))*0.5;
                         pct += grid(st,0.02,press)*.5;
                         pct += grid(st,0.01,press)*.25;
                         return pct*.5;
@@ -401,16 +403,21 @@ styles:
         mix: [textures, satelite]
         material: 
             diffuse: white
-            specular: black
+            # specular: black
     water:
         mix: [textures, satelite]
         material:
             diffuse: white
-            specular: white
+            specular: .1
+            shininess: 0.2
         animated: true
     spline:
         base: lines
         lighting: false
+    orbit:
+        base: lines
+        lighting: false
+        blend: overlay
     boundaries-region:
         base: lines
         dash: [6,2]
